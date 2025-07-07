@@ -15,7 +15,7 @@ pub struct DynamicLayable<'a> {
 
 	drop: fn(*mut u8),
 	clone: Option<fn(*const u8, std::alloc::Layout) -> *mut u8>,
-	debug: Option<fn(*const u8) -> String>,
+	debug: Option<fn(*const u8, fmt: &mut std::fmt::Formatter) -> std::fmt::Result>,
 
 	lifetime: std::marker::PhantomData<&'a ()>,
 }
@@ -36,9 +36,12 @@ impl<'a> DynamicLayable<'a> {
 	// common trait impls: might cause some really ugly stuff to happen if L != the L new_notraits was called with
 	fn add_debug<L: Layable + Debug>(mut self) -> Self {
 		// no pretty printed version cause what do u even need that for
-		fn debug<L: Layable + Debug>(ptr: *const u8) -> String {
+		fn debug<L: Layable + Debug>(
+			ptr: *const u8,
+			fmt: &mut std::fmt::Formatter,
+		) -> std::fmt::Result {
 			let b: &L = unsafe { &*(ptr as *const L) };
-			format!("{b:?}")
+			b.fmt(fmt)
 		}
 
 		self.debug = Some(debug::<L>);
@@ -201,8 +204,6 @@ impl<'a> Debug for DynamicLayable<'a> {
 		match self.debug {
 			None => write!(f, "[DynamicLayable {}]", self.type_name),
 			Some(dbgf) => {
-				let s = dbgf(self.ptr);
-				let type_name = self.type_name;
 				fn none_or_some<T>(x: Option<T>) -> &'static str {
 					match x {
 						Some(_) => "Some",
@@ -210,10 +211,10 @@ impl<'a> Debug for DynamicLayable<'a> {
 					}
 				}
 				let (clone, debug) = (none_or_some(self.clone), none_or_some(self.debug));
-				write!(
-					f,
-					"[DynamicLayable {type_name} {s}, clone: {clone}, debug: {debug}]"
-				)
+
+				write!(f, "[DynamicLayable ")?;
+				dbgf(self.ptr, f)?;
+				write!(f, ", clone: {clone}, debug: {debug}]")
 			}
 		}
 	}
