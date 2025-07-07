@@ -1,8 +1,4 @@
-use raylib::{
-	ffi::MouseButton,
-	prelude::{RaylibDraw, RaylibDrawHandle},
-	RaylibHandle,
-};
+use raylib::{ffi::MouseButton, prelude::RaylibDraw, RaylibHandle};
 
 use crate::color;
 use raylib::color::Color;

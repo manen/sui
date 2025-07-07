@@ -3,7 +3,6 @@ use crate::{
 	comp::{Comp, Compatible},
 	Details,
 };
-use raylib::prelude::RaylibDrawHandle;
 
 pub trait DivComponents: Sized {
 	type L: Layable;

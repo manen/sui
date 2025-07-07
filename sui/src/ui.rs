@@ -2,7 +2,6 @@ use std::{borrow::Cow, ops::DerefMut};
 
 use raylib::{
 	ffi::{KeyboardKey, MouseButton},
-	prelude::RaylibDrawHandle,
 	RaylibHandle,
 };
 

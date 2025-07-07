@@ -1,5 +1,4 @@
 use crate::core::{Details, Event, Layable};
-use raylib::prelude::RaylibDrawHandle;
 use std::fmt::Debug;
 
 /// DynamicLayable is like dyn Layable but better
