@@ -13,14 +13,11 @@ use crate::{
 	},
 	core::{Event, FeaturedReturn, ReturnEvent, Store},
 	form::FocusHandler,
-	Details, Layable,
+	Details, DynamicLayable, Layable,
 };
 
-/// this will turn any layable into a Comp \
-///! do not use if Comp has an enum variant for the layable you're using,
-///  as it will create a DynamicLayable for nothing (causing performance & memory overhead)
-pub fn custom<'a, L: Layable + std::fmt::Debug + Clone + 'a>(layable: L) -> Comp<'a> {
-	crate::DynamicLayable::new(layable).into_comp()
+pub fn custom<'a, L: Layable + std::fmt::Debug + Clone + 'a>(layable: L) -> DynamicLayable<'a> {
+	crate::DynamicLayable::new(layable)
 }
 
 pub fn div<D: comp::div::DivComponents>(components: D) -> comp::Div<D> {
