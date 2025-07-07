@@ -24,3 +24,18 @@ pub trait Layable {
 ```
 
 with this, you can build surprisingly complex ui's and the `pass_event` function makes it possible to build whole systems as part of the ui tree.
+
+## usage
+
+for simplicity and developer experience, `sui` doesn't use cargo workspaces as nested workspaces don't exist in Rust (for some reason).
+
+to use a package you want, you can either:
+
+```toml
+[dependencies]
+sui.git = "https://github.com/manen/sui"
+sui_runner.git = "https://github.com/manen/sui"
+# etc etc
+```
+
+or if you'd like to develop sui along your game, use git submodules and include the folders in this repository in your own workspace.
