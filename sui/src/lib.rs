@@ -1,3 +1,5 @@
+pub use raylib;
+
 pub mod core;
 pub use core::{Details, DynamicLayable, Handle, Layable};
 

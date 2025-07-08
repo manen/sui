@@ -1,6 +1,6 @@
 mod dyn_layable;
 pub use dyn_layable::DynamicLayable;
-use raylib::{prelude::RaylibDrawHandle, RaylibHandle};
+use raylib::RaylibHandle;
 use std::fmt::Debug;
 
 mod store;

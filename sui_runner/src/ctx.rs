@@ -1,10 +1,8 @@
-use std::{borrow::Cow, ops::DerefMut};
-
-use raylib::{color::Color, math::Ray, prelude::RaylibDraw, RaylibHandle, RaylibThread};
+use raylib::{color::Color, prelude::RaylibDraw, RaylibHandle, RaylibThread};
 use sui::{
 	core::{ReturnEvent, Store},
 	form::UniqueId,
-	Layable, LayableExt, RootContext,
+	Layable, LayableExt,
 };
 
 #[derive(Debug)]

@@ -259,7 +259,7 @@ impl<L: Layable> Layable for Scrollable<L> {
 		// - MouseHeld updates self.scroll_x or self.scroll_y
 		// - release stops the action
 		match event {
-			Event::MouseEvent(MouseEvent::Scroll { x, y, amount }) => {
+			Event::MouseEvent(MouseEvent::Scroll { amount, .. }) => {
 				self.state.with_mut_borrow(|a| {
 					if self.mode == ScrollableMode::Horizontal {
 						a.scroll_x -= (amount * 10.0) as i32;

@@ -3,7 +3,7 @@ use crate::{Details, Layable};
 use raylib::{
 	color::Color,
 	math::{Rectangle, Vector2},
-	prelude::{RaylibDraw, RaylibDrawHandle},
+	prelude::RaylibDraw,
 	texture::{RaylibTexture2D, Texture2D},
 };
 

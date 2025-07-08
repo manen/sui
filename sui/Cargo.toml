@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+raylib.git = "https://github.com/manen/raylib-rs"
+
 rand = { version = "0.9.0", default-features = false, features = ["std", "thread_rng"] }
 rand_core = "0.9.0"
 rand_pcg = "0.9.0"
-raylib.workspace = true

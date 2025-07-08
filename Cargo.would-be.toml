@@ -1,0 +1,12 @@
+[workspace]
+resolver = "3"
+members = ["sui", "sui_runner", "asset_provider" , "stage_manager"]
+
+[workspace.dependencies]
+sui.path = "./sui"
+sui_runner.path = "./sui_runner"
+asset_provider.path = "./asset_provider"
+stage_manager.path = "./stage_manager"
+
+# see readme #usage
+# this workspace definition is only used on github actions
