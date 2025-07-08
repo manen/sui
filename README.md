@@ -1,7 +1,7 @@
 # `sui`
 
-> the signals ui library
-> made for my game [signals](https://github.com/manen/signals), i separated it into its own repository to make it easier to use for other projects.
+> the ui library made for my game [signals](https://github.com/manen/signals)
+> i separated it into its own repository to make it easier to use for other projects.
 
 `sui` is a small but flexible ui component library built for [`raylib`](https://github.com/manen/raylib-rs), written in Rust.
 
