@@ -1,0 +1,10 @@
+[package]
+name = "asset_provider_image"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sui.workspace = true
+asset_provider.workspace = true
+image = "0.25.6"
+thiserror = "2.0.12"
