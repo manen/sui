@@ -64,6 +64,11 @@ impl Clone for Texture {
 		Self { tex: new_tex }
 	}
 }
+impl AsRef<Texture2D> for Texture {
+	fn as_ref(&self) -> &Texture2D {
+		&self.tex
+	}
+}
 impl Texture {
 	pub fn new_from_raylib(tex: Texture2D) -> Self {
 		Self { tex }
