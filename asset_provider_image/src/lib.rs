@@ -1,11 +1,9 @@
-use std::io::Read;
-
 pub use image;
 
 use asset_provider::Assets;
 use image::DynamicImage;
 use sui::{
-	raylib::{RaylibThread, ffi::PixelFormat, texture::Image},
+	raylib::{RaylibThread, texture::Image},
 	tex::Texture,
 };
 
@@ -16,7 +14,7 @@ pub enum Error {
 	#[error("image error while loading an asset:\n{0}")]
 	Image(#[from] image::ImageError),
 	#[error("error in LoadTextureFromImage:\n{0}")]
-	LoadTextureFromImage(String),
+	LoadTextureFromImage(#[from] sui::raylib::error::LoadTextureError),
 
 	#[error("JoinError when trying to load the image from memory using spawn_blocking")]
 	JoinError(#[from] tokio::task::JoinError),
@@ -60,9 +58,7 @@ impl ImageExt for DynamicImage {
 		};
 		std::mem::forget(pixels); // <- pixels is managed by image now
 
-		let texture = d
-			.load_texture_from_image(thread, &image)
-			.map_err(Error::LoadTextureFromImage)?;
+		let texture = d.load_texture_from_image(thread, &image)?;
 		let texture = Texture::new_from_raylib(texture);
 
 		Ok(texture)
