@@ -246,6 +246,11 @@ impl<'a> Clone for DynamicLayable<'a> {
 	}
 }
 
+// note on Send + Sync: this is only here so stages can be loaded on other threads, raylib makes it
+// so we can only render from the main thread, keep that in mind
+unsafe impl<'a> Send for DynamicLayable<'a> {}
+unsafe impl<'a> Sync for DynamicLayable<'a> {}
+
 #[cfg(test)]
 mod dynamiclayable_tests {
 	use super::*;

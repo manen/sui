@@ -17,6 +17,9 @@ pub enum Error {
 	Image(#[from] image::ImageError),
 	#[error("error in LoadTextureFromImage:\n{0}")]
 	LoadTextureFromImage(String),
+
+	#[error("JoinError when trying to load the image from memory using spawn_blocking")]
+	JoinError(#[from] tokio::task::JoinError),
 }
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -26,7 +29,11 @@ pub trait AssetsExt {
 impl<A: Assets + Sync> AssetsExt for A {
 	async fn asset_image(&self, key: &str) -> Result<DynamicImage> {
 		let asset = self.asset(key).await?;
-		let image = image::load_from_memory(asset.as_ref())?;
+		let asset = asset.to_vec();
+		let handle = tokio::runtime::Handle::current();
+		let image = handle
+			.spawn_blocking(move || image::load_from_memory(&asset))
+			.await??;
 
 		Ok(image)
 	}
@@ -45,13 +52,17 @@ impl ImageExt for DynamicImage {
 			sui::color(0, 0, 0, 0),
 		);
 		image.set_format(PixelFormat::PIXELFORMAT_UNCOMPRESSED_R8G8B8);
-		unsafe {
-			std::ptr::copy_nonoverlapping(
-				rgba.as_ptr(),
-				image.data as *mut u8,
-				rgba.bytes().count(),
-			);
-		}
+
+		// na figyu mar compileolunk bar a game loadingnal nem lett meg rendesen az async szoval paraszt modjara
+		// blockolva toltjuk be a texturakat
+		// de ez a copy_nonoverlapping errorol most es mar basz fel rendesen
+		// unsafe {
+		// 	std::ptr::copy_nonoverlapping(
+		// 		rgba.as_ptr() as *const u8,
+		// 		image.data as *mut u8,
+		// 		rgba.len(),
+		// 	);
+		// }
 
 		let texture = d
 			.load_texture_from_image(thread, &image)

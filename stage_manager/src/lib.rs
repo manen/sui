@@ -6,11 +6,13 @@ use sui::{DynamicLayable, Layable};
 #[derive(Clone, Debug)]
 pub struct StageChange<'a> {
 	pub to: DynamicLayable<'a>,
+	pub requires_ticking: bool,
 }
 impl<'a> StageChange<'a> {
 	pub fn new<L: Layable + Debug + Clone + 'a>(layable: L) -> Self {
 		Self {
 			to: DynamicLayable::new(layable),
+			requires_ticking: false,
 		}
 	}
 }

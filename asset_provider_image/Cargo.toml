@@ -8,3 +8,5 @@ sui.workspace = true
 asset_provider.workspace = true
 image = "0.25.6"
 thiserror = "2.0.12"
+
+tokio.workspace = true
