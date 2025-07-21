@@ -45,24 +45,20 @@ pub trait ImageExt {
 impl ImageExt for DynamicImage {
 	fn texture(&self, d: &mut sui::Handle, thread: &RaylibThread) -> Result<Texture> {
 		let rgba = self.to_rgba8();
+		let (w, h) = rgba.dimensions();
 
-		let mut image = Image::gen_image_color(
-			rgba.width() as _,
-			rgba.height() as _,
-			sui::color(0, 0, 0, 0),
-		);
-		image.set_format(PixelFormat::PIXELFORMAT_UNCOMPRESSED_R8G8B8);
+		let pixels = rgba.into_raw();
 
-		// na figyu mar compileolunk bar a game loadingnal nem lett meg rendesen az async szoval paraszt modjara
-		// blockolva toltjuk be a texturakat
-		// de ez a copy_nonoverlapping errorol most es mar basz fel rendesen
-		// unsafe {
-		// 	std::ptr::copy_nonoverlapping(
-		// 		rgba.as_ptr() as *const u8,
-		// 		image.data as *mut u8,
-		// 		rgba.len(),
-		// 	);
-		// }
+		let image = unsafe {
+			Image::from_raw(sui::raylib::ffi::Image {
+				data: pixels.as_ptr() as *mut std::ffi::c_void,
+				width: w as _,
+				height: h as _,
+				mipmaps: 1,
+				format: sui::raylib::consts::PixelFormat::PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 as _,
+			})
+		};
+		std::mem::forget(pixels); // <- pixels is managed by image now
 
 		let texture = d
 			.load_texture_from_image(thread, &image)
