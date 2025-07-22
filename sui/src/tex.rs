@@ -87,30 +87,34 @@ impl Texture {
 		);
 		Self::new_from_raylib(tex)
 	}
+
+	pub fn render(&self, d: &mut crate::Handle, det: Details) {
+		d.draw_texture_pro(
+			&self.tex,
+			Rectangle {
+				x: 0.0,
+				y: 0.0,
+				width: self.tex.width as _,
+				height: self.tex.height as _,
+			},
+			Rectangle {
+				x: det.x as _,
+				y: det.y as _,
+				width: det.aw as _,
+				height: det.ah as _,
+			},
+			Vector2::default(),
+			Default::default(),
+			Color::new(255, 255, 255, 255),
+		);
+	}
 }
 impl Layable for Texture {
 	fn size(&self) -> (i32, i32) {
 		(self.tex.width, self.tex.height)
 	}
 	fn render(&self, d: &mut crate::Handle, det: Details, scale: f32) {
-		d.draw_texture_pro(
-			&self.tex,
-			Rectangle {
-				x: 0.0,
-				y: 0.0,
-				width: self.tex.width as f32,
-				height: self.tex.height as f32,
-			},
-			Rectangle {
-				x: det.x as f32,
-				y: det.y as f32,
-				width: det.aw as f32 * scale,
-				height: det.ah as f32 * scale,
-			},
-			Vector2::default(),
-			Default::default(),
-			Color::new(255, 255, 255, 255),
-		);
+		self.render(d, det.mul_size(scale));
 	}
 	fn pass_event(
 		&self,
