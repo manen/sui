@@ -29,7 +29,7 @@ impl<L: Layable> Layable for Crop<L> {
 		unsafe { raylib::ffi::EndScissorMode() };
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: Event,
 		det: crate::Details,
 		scale: f32,

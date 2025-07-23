@@ -12,6 +12,9 @@ pub use event::*;
 mod handle;
 pub use handle::*;
 
+mod immutable_wrap;
+pub use immutable_wrap::ImmutableWrap;
+
 pub trait Layable {
 	fn size(&self) -> (i32, i32);
 	fn render(&self, d: &mut Handle, det: Details, scale: f32);
@@ -19,13 +22,13 @@ pub trait Layable {
 	/// this function is called by the parent of this component \
 	/// return events to be bubbled back \
 	fn pass_event(
-		&self,
+		&mut self,
 		event: Event,
 		det: Details,
 		scale: f32,
 	) -> Option<crate::core::ReturnEvent>;
 }
-impl<L: Layable> Layable for &L {
+impl<L: Layable> Layable for &mut L {
 	fn size(&self) -> (i32, i32) {
 		L::size(self)
 	}
@@ -33,7 +36,7 @@ impl<L: Layable> Layable for &L {
 		L::render(self, d, det, scale)
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: Event,
 		det: Details,
 		scale: f32,

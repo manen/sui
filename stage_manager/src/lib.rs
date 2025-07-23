@@ -42,12 +42,12 @@ impl<'a> Layable for Stage<'a> {
 		self.comp.borrow().render(d, det, scale)
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: sui::core::Event,
 		det: sui::Details,
 		scale: f32,
 	) -> Option<sui::core::ReturnEvent> {
-		let event = self.comp.borrow().pass_event(event, det, scale);
+		let event = self.comp.borrow_mut().pass_event(event, det, scale);
 		match event {
 			Some(event) if event.can_take::<StageChange>() => {
 				let mut change: StageChange =

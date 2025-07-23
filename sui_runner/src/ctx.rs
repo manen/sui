@@ -51,7 +51,7 @@ impl<L: Layable> Context<L> {
 	}
 	pub fn tick(&mut self, focus: &mut Store<UniqueId>) {
 		let screen = sui::Details::rl_window(&self.rl);
-		let ctx = self.l.root_context(screen, 1.0);
+		let mut ctx = self.l.root_context(screen, 1.0);
 
 		let mut r = &mut self.rl;
 		let r = &mut r;

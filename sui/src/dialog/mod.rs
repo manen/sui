@@ -1,4 +1,4 @@
-use crate::{Comp, Layable, RootContext};
+use crate::{core::ImmutableWrap, Comp, Layable, LayableExt, RootContext};
 
 const DEFAULT_COMP: Comp = Comp::Space(crate::comp::Space::new(0, 0));
 
@@ -30,15 +30,15 @@ impl Handler {
 			Command::Close => self.inst = None,
 		}
 	}
-	pub fn root_context(&self) -> RootContext<Comp<'static>> {
+	pub fn root_context(&self) -> RootContext<ImmutableWrap<Comp<'static>>> {
 		match &self.inst {
 			Some(Instance { comp, at, scale }) => {
 				let (x, y) = *at;
 				let (aw, ah) = comp.size();
 				let det = crate::Details { x, y, aw, ah };
-				RootContext::new(comp, det, *scale)
+				RootContext::new(comp.immutable_wrap(), det, *scale)
 			}
-			None => RootContext::new(&DEFAULT_COMP, Default::default(), 1.0),
+			None => RootContext::new(DEFAULT_COMP.immutable_wrap(), Default::default(), 1.0),
 		}
 	}
 }

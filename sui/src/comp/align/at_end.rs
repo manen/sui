@@ -70,7 +70,7 @@ impl<L: Layable> Layable for AtEnd<L> {
 		self.layable.render(d, self.l_det(det, scale), scale);
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: crate::core::Event,
 		det: Details,
 		scale: f32,

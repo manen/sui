@@ -70,7 +70,7 @@ impl<'a> Layable for Text<'a> {
 	}
 
 	fn pass_event(
-		&self,
+		&mut self,
 		_: crate::core::Event,
 		_: crate::Details,
 		_: f32,

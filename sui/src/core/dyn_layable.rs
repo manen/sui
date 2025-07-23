@@ -11,7 +11,7 @@ pub struct DynamicLayable<'a> {
 	size: fn(*const u8) -> (i32, i32),
 	render: fn(*const u8, d: &mut crate::Handle, det: Details, scale: f32),
 	pass_event:
-		fn(*const u8, event: Event, det: Details, scale: f32) -> Option<crate::core::ReturnEvent>,
+		fn(*mut u8, event: Event, det: Details, scale: f32) -> Option<crate::core::ReturnEvent>,
 
 	drop: fn(*mut u8),
 	clone: Option<fn(*const u8, std::alloc::Layout) -> *mut u8>,
@@ -87,12 +87,12 @@ impl<'a> DynamicLayable<'a> {
 			L::render(unsafe { &*(ptr as *const L) }, d, det, scale)
 		}
 		fn pass_event<L: Layable>(
-			ptr: *const u8,
+			ptr: *mut u8,
 			event: Event,
 			det: Details,
 			scale: f32,
 		) -> Option<crate::core::ReturnEvent> {
-			L::pass_event(unsafe { &*(ptr as *const L) }, event, det, scale)
+			L::pass_event(unsafe { &mut *(ptr as *mut L) }, event, det, scale)
 		}
 
 		fn drop<L: Layable>(ptr: *mut u8) {
@@ -189,7 +189,7 @@ impl<'a> Layable for DynamicLayable<'a> {
 		(self.render)(self.ptr, d, det, scale)
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: Event,
 		det: Details,
 		scale: f32,
@@ -277,7 +277,7 @@ mod dynamiclayable_tests {
 		println!("{d:?}");
 		test_pair(l, d);
 	}
-	fn test_pair<A: Layable, B: Layable>(a: A, b: B) {
+	fn test_pair<A: Layable, B: Layable>(mut a: A, mut b: B) {
 		let test_event =
 			Event::MouseEvent(crate::core::event::MouseEvent::MouseClick { x: 3, y: 4 });
 
@@ -320,7 +320,7 @@ mod dynamiclayable_tests {
 			}
 			fn render(&self, _: &mut crate::Handle, _: Details, _: f32) {}
 			fn pass_event(
-				&self,
+				&mut self,
 				event: Event,
 				_: Details,
 				_: f32,
@@ -350,7 +350,7 @@ mod dynamiclayable_tests {
 			}
 			fn render(&self, _: &mut crate::Handle, _: Details, _: f32) {}
 			fn pass_event(
-				&self,
+				&mut self,
 				event: Event,
 				_: Details,
 				_: f32,
@@ -381,7 +381,7 @@ mod dynamiclayable_tests {
 			}
 			fn render(&self, _: &mut crate::Handle, _: Details, _: f32) {}
 			fn pass_event(
-				&self,
+				&mut self,
 				event: Event,
 				_: Details,
 				_: f32,

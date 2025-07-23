@@ -35,7 +35,7 @@ impl<L: Layable> Layable for Centered<L> {
 		self.layable.render(d, self.l_det(det, scale), scale);
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: Event,
 		det: crate::Details,
 		scale: f32,

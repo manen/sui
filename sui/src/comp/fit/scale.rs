@@ -20,7 +20,7 @@ impl<L: Layable> Layable for Scale<L> {
 		self.layable.render(d, det, scale * self.scale);
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: crate::core::Event,
 		det: crate::Details,
 		scale: f32,

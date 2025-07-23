@@ -17,7 +17,7 @@ impl Layable for Space {
 	}
 	fn render(&self, _: &mut crate::Handle, _: crate::Details, _: f32) {}
 	fn pass_event(
-		&self,
+		&mut self,
 		_: crate::core::Event,
 		_: crate::Details,
 		_: f32,
@@ -100,7 +100,7 @@ impl<L: Layable> Layable for Margin<L> {
 		self.layable.render(d, self.l_det(det, scale), scale)
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: crate::core::Event,
 		det: crate::Details,
 		scale: f32,

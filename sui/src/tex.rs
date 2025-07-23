@@ -117,7 +117,7 @@ impl Layable for Texture {
 		self.render(d, det.mul_size(scale));
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		_: crate::core::Event,
 		_: Details,
 		_: f32,

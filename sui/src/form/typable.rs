@@ -79,7 +79,7 @@ impl Layable for Typable {
 		}
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: crate::core::Event,
 		_det: crate::Details,
 		_scale: f32,

@@ -27,7 +27,7 @@ impl Layable for Color {
 		);
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		_event: crate::core::Event,
 		_det: crate::Details,
 		_scale: f32,

@@ -42,7 +42,7 @@ impl<L: Layable> Layable for Debug<L> {
 		self.layable.render(d, det, scale)
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: crate::core::Event,
 		det: crate::Details,
 		scale: f32,

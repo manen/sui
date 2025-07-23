@@ -26,7 +26,7 @@ impl<A: Layable, B: Layable> Layable for Overlay<A, B> {
 		self.foreground.render(d, det, scale);
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: crate::core::Event,
 		det: crate::Details,
 		scale: f32,

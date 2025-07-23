@@ -25,7 +25,7 @@ impl<E: FeaturedReturn, L: Layable> Layable for CastEvents<E, L> {
 		self.layable.render(d, det, scale);
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: crate::core::Event,
 		det: crate::Details,
 		scale: f32,

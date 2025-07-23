@@ -11,7 +11,7 @@ use crate::{
 		scrollable::{ScrollableMode, ScrollableState},
 		Comp, Compatible,
 	},
-	core::{Event, FeaturedReturn, ReturnEvent, Store},
+	core::{Event, FeaturedReturn, ImmutableWrap, ReturnEvent, Store},
 	form::FocusHandler,
 	Details, DynamicLayable, Layable,
 };
@@ -33,13 +33,13 @@ pub fn text<'a, T: Into<Cow<'a, str>>>(text: T, size: i32) -> Comp<'a> {
 /// `RootContext` contains everything needed to calculate Details and scales, for both rendering
 /// and events. this is so there's no way [Layable::render] and [Layable::pass_event]
 /// could work with different data.
-pub struct RootContext<'a, L: Layable> {
-	layable: &'a L,
+pub struct RootContext<L: Layable> {
+	layable: L,
 	det: Details,
 	scale: f32,
 }
-impl<'a, L: Layable> RootContext<'a, L> {
-	pub fn new(layable: &'a L, det: Details, scale: f32) -> Self {
+impl<L: Layable> RootContext<L> {
+	pub fn new(layable: L, det: Details, scale: f32) -> Self {
 		RootContext {
 			layable,
 			det,
@@ -51,10 +51,10 @@ impl<'a, L: Layable> RootContext<'a, L> {
 		self.layable.render(d, self.det, self.scale);
 	}
 	pub fn handle_input<'b, E: FeaturedReturn, H: DerefMut<Target = RaylibHandle>>(
-		&'b self,
+		&'b mut self,
 		rl: &mut H,
 		focus: &FocusHandler,
-	) -> impl Iterator<Item = Result<E, ReturnEvent>> + 'b {
+	) -> Vec<Result<E, ReturnEvent>> {
 		use crate::core::KeyboardEvent;
 		use crate::core::MouseEvent;
 
@@ -145,6 +145,7 @@ impl<'a, L: Layable> RootContext<'a, L> {
 					})
 			})
 			.filter_map(|a| a)
+			.collect::<Vec<_>>()
 	}
 }
 
@@ -259,9 +260,14 @@ pub trait LayableExt: Layable + Sized {
 		comp::Overlay::new(background, self)
 	}
 
+	/// makes it so you can implement Layable for &L \
+	/// the tradeoff is losing pass_event functionality
+	fn immutable_wrap(&self) -> ImmutableWrap<Self> {
+		ImmutableWrap::new(self)
+	}
 	/// the context from which root components should be interacted with \
 	/// see [RootContext]
-	fn root_context(&self, det: Details, scale: f32) -> RootContext<Self> {
+	fn root_context(&mut self, det: Details, scale: f32) -> RootContext<&mut Self> {
 		RootContext::new(self, det, scale)
 	}
 }

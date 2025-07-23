@@ -1,7 +1,7 @@
 use raylib::prelude::RaylibDraw;
 
 use crate::{
-	core::{Event, MouseEvent, Store},
+	core::{Event, ImmutableWrap, MouseEvent, Store},
 	Layable,
 };
 
@@ -90,12 +90,22 @@ impl<L: Layable> Scrollable<L> {
 		}
 	}
 
-	fn view(&self, scale: f32) -> View<&L> {
+	fn view(&self, scale: f32) -> View<ImmutableWrap<L>> {
 		self.clamp(None);
 		let (scroll_x, scroll_y) = self.state.with_borrow(|a| (a.scroll_x, a.scroll_y));
 
 		View::new(
-			&self.layable,
+			ImmutableWrap::new(&self.layable),
+			(scroll_x as f32 * scale) as i32,
+			(scroll_y as f32 * scale) as i32,
+		)
+	}
+	fn view_mut(&mut self, scale: f32) -> View<&mut L> {
+		self.clamp(None);
+		let (scroll_x, scroll_y) = self.state.with_borrow(|a| (a.scroll_x, a.scroll_y));
+
+		View::new(
+			&mut self.layable,
 			(scroll_x as f32 * scale) as i32,
 			(scroll_y as f32 * scale) as i32,
 		)
@@ -243,7 +253,7 @@ impl<L: Layable> Layable for Scrollable<L> {
 		}
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: crate::core::Event,
 		det: crate::Details,
 		scale: f32,
@@ -251,7 +261,6 @@ impl<L: Layable> Layable for Scrollable<L> {
 		let (mul_x, mul_y) = self.mode.multipliers_f32();
 		let (l_w, l_h) = self.layable.size();
 
-		let view = self.view(scale);
 		let view_det = self.l_det(det, scale, Some((l_w, l_h)));
 
 		// different events do different things:
@@ -345,7 +354,7 @@ impl<L: Layable> Layable for Scrollable<L> {
 			_ => (),
 		}
 
-		view.pass_event(event, view_det, scale)
+		self.view_mut(scale).pass_event(event, view_det, scale)
 	}
 }
 
@@ -387,7 +396,7 @@ impl<L: Layable> Layable for View<L> {
 		self.layable.render(d, self.l_det(det, scale), scale);
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: crate::core::Event,
 		det: crate::Details,
 		scale: f32,

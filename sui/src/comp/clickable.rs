@@ -56,7 +56,7 @@ impl<T: Clone, C: Layable, F: Fn((i32, i32)) -> T> Layable for Clickable<C, F, T
 	}
 
 	fn pass_event(
-		&self,
+		&mut self,
 		event: Event,
 		det: crate::Details,
 		scale: f32,

@@ -53,7 +53,7 @@ impl<L: Layable> Layable for FixedSize<L> {
 		self.layable.render(d, self.l_det(det), scale)
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: crate::core::Event,
 		det: crate::Details,
 		scale: f32,

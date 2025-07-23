@@ -45,7 +45,7 @@ impl<L: Layable> Layable for ScaleToFit<L> {
 		self.layable.render(d, det, scale * self.scale(None));
 	}
 	fn pass_event(
-		&self,
+		&mut self,
 		event: crate::core::Event,
 		det: crate::Details,
 		scale: f32,
@@ -68,7 +68,7 @@ mod scaletofit_tests {
 			}
 			fn render(&self, _: &mut crate::Handle, _: crate::Details, _: f32) {}
 			fn pass_event(
-				&self,
+				&mut self,
 				_event: crate::core::Event,
 				_: crate::Details,
 				_: f32,

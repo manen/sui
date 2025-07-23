@@ -73,7 +73,7 @@ impl<'a> Layable for Comp<'a> {
 	}
 
 	fn pass_event(
-		&self,
+		&mut self,
 		event: crate::core::Event,
 		det: crate::Details,
 		scale: f32,
