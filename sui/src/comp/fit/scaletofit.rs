@@ -44,6 +44,10 @@ impl<L: Layable> Layable for ScaleToFit<L> {
 	fn render(&self, d: &mut crate::Handle, det: crate::Details, scale: f32) {
 		self.layable.render(d, det, scale * self.scale(None));
 	}
+
+	fn tick(&mut self) {
+		self.layable.tick();
+	}
 	fn pass_event(
 		&mut self,
 		event: crate::core::Event,
@@ -67,14 +71,6 @@ mod scaletofit_tests {
 				(100, 200)
 			}
 			fn render(&self, _: &mut crate::Handle, _: crate::Details, _: f32) {}
-			fn pass_event(
-				&mut self,
-				_event: crate::core::Event,
-				_: crate::Details,
-				_: f32,
-			) -> Option<crate::core::ReturnEvent> {
-				None
-			}
 		}
 		{
 			let stf = ScaleToFit::fix_w(50, Dummy);

@@ -56,6 +56,8 @@ impl<L: Layable> Context<L> {
 		let mut r = &mut self.rl;
 		let r = &mut r;
 
+		ctx.tick();
+
 		for event in ctx.handle_input(r, focus) {
 			match event {
 				Ok(Event::Focus(cmd)) => cmd.apply(focus),

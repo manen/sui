@@ -16,14 +16,6 @@ impl Layable for Space {
 		(self.w, self.h)
 	}
 	fn render(&self, _: &mut crate::Handle, _: crate::Details, _: f32) {}
-	fn pass_event(
-		&mut self,
-		_: crate::core::Event,
-		_: crate::Details,
-		_: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		None
-	}
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default)]
@@ -98,6 +90,10 @@ impl<L: Layable> Layable for Margin<L> {
 	}
 	fn render(&self, d: &mut crate::Handle, det: crate::Details, scale: f32) {
 		self.layable.render(d, self.l_det(det, scale), scale)
+	}
+
+	fn tick(&mut self) {
+		self.layable.tick();
 	}
 	fn pass_event(
 		&mut self,

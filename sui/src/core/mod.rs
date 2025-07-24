@@ -19,14 +19,17 @@ pub trait Layable {
 	fn size(&self) -> (i32, i32);
 	fn render(&self, d: &mut Handle, det: Details, scale: f32);
 
+	fn tick(&mut self) {}
 	/// this function is called by the parent of this component \
 	/// return events to be bubbled back \
 	fn pass_event(
 		&mut self,
-		event: Event,
-		det: Details,
-		scale: f32,
-	) -> Option<crate::core::ReturnEvent>;
+		_event: Event,
+		_det: Details,
+		_scale: f32,
+	) -> Option<crate::core::ReturnEvent> {
+		None
+	}
 }
 impl<L: Layable> Layable for &mut L {
 	fn size(&self) -> (i32, i32) {
@@ -34,6 +37,9 @@ impl<L: Layable> Layable for &mut L {
 	}
 	fn render(&self, d: &mut Handle, det: Details, scale: f32) {
 		L::render(self, d, det, scale)
+	}
+	fn tick(&mut self) {
+		L::tick(self)
 	}
 	fn pass_event(
 		&mut self,

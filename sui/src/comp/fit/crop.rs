@@ -28,6 +28,10 @@ impl<L: Layable> Layable for Crop<L> {
 		self.layable.render(d, det, scale);
 		unsafe { raylib::ffi::EndScissorMode() };
 	}
+
+	fn tick(&mut self) {
+		self.layable.tick();
+	}
 	fn pass_event(
 		&mut self,
 		event: Event,

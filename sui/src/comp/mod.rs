@@ -72,6 +72,15 @@ impl<'a> Layable for Comp<'a> {
 		}
 	}
 
+	fn tick(&mut self) {
+		match self {
+			Self::Div(a) => a.tick(),
+			Self::Text(a) => a.tick(),
+			Self::Space(a) => a.tick(),
+			Self::Color(a) => a.tick(),
+			Self::Dynamic(dl) => dl.tick(),
+		}
+	}
 	fn pass_event(
 		&mut self,
 		event: crate::core::Event,

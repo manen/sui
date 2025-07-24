@@ -41,6 +41,10 @@ impl<'a> Layable for Stage<'a> {
 	fn render(&self, d: &mut sui::Handle, det: sui::Details, scale: f32) {
 		self.comp.borrow().render(d, det, scale)
 	}
+
+	fn tick(&mut self) {
+		self.comp.borrow_mut().tick();
+	}
 	fn pass_event(
 		&mut self,
 		event: sui::core::Event,

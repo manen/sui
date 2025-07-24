@@ -68,13 +68,4 @@ impl<'a> Layable for Text<'a> {
 			self.3,
 		);
 	}
-
-	fn pass_event(
-		&mut self,
-		_: crate::core::Event,
-		_: crate::Details,
-		_: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		None
-	}
 }

@@ -10,6 +10,8 @@ pub struct DynamicLayable<'a> {
 
 	size: fn(*const u8) -> (i32, i32),
 	render: fn(*const u8, d: &mut crate::Handle, det: Details, scale: f32),
+
+	tick: fn(*mut u8),
 	pass_event:
 		fn(*mut u8, event: Event, det: Details, scale: f32) -> Option<crate::core::ReturnEvent>,
 
@@ -86,6 +88,9 @@ impl<'a> DynamicLayable<'a> {
 		fn render<L: Layable>(ptr: *const u8, d: &mut crate::Handle, det: Details, scale: f32) {
 			L::render(unsafe { &*(ptr as *const L) }, d, det, scale)
 		}
+		fn tick<L: Layable>(ptr: *mut u8) {
+			L::tick(unsafe { &mut *(ptr as *mut L) });
+		}
 		fn pass_event<L: Layable>(
 			ptr: *mut u8,
 			event: Event,
@@ -107,6 +112,7 @@ impl<'a> DynamicLayable<'a> {
 			type_name,
 			size: size::<L>,
 			render: render::<L>,
+			tick: tick::<L>,
 			pass_event: pass_event::<L>,
 			drop: drop::<L>,
 			clone: None,
@@ -188,6 +194,10 @@ impl<'a> Layable for DynamicLayable<'a> {
 	fn render(&self, d: &mut crate::Handle, det: Details, scale: f32) {
 		(self.render)(self.ptr, d, det, scale)
 	}
+
+	fn tick(&mut self) {
+		(self.tick)(self.ptr)
+	}
 	fn pass_event(
 		&mut self,
 		event: Event,
@@ -233,6 +243,7 @@ impl<'a> Clone for DynamicLayable<'a> {
 					type_name: self.type_name,
 					size: self.size,
 					render: self.render,
+					tick: self.tick,
 					pass_event: self.pass_event,
 					drop: self.drop,
 					clone: self.clone,

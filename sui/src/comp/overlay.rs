@@ -25,6 +25,11 @@ impl<A: Layable, B: Layable> Layable for Overlay<A, B> {
 		self.background.render(d, det, scale);
 		self.foreground.render(d, det, scale);
 	}
+
+	fn tick(&mut self) {
+		self.foreground.tick();
+		self.background.tick();
+	}
 	fn pass_event(
 		&mut self,
 		event: crate::core::Event,

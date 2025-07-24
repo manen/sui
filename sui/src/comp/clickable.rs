@@ -55,6 +55,9 @@ impl<T: Clone, C: Layable, F: Fn((i32, i32)) -> T> Layable for Clickable<C, F, T
 		self.comp.render(d, det, scale)
 	}
 
+	fn tick(&mut self) {
+		self.comp.tick();
+	}
 	fn pass_event(
 		&mut self,
 		event: Event,

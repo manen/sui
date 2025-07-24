@@ -154,6 +154,13 @@ impl<D: DivComponents> Layable for Div<D> {
 		}
 	}
 
+	fn tick(&mut self) {
+		if let Some(iter) = self.components.iter_components_mut() {
+			for comp in iter {
+				comp.tick();
+			}
+		}
+	}
 	fn pass_event(
 		&mut self,
 		event: Event,

@@ -34,6 +34,10 @@ impl<L: Layable> Layable for Centered<L> {
 	fn render(&self, d: &mut crate::Handle, det: crate::Details, scale: f32) {
 		self.layable.render(d, self.l_det(det, scale), scale);
 	}
+
+	fn tick(&mut self) {
+		self.layable.tick();
+	}
 	fn pass_event(
 		&mut self,
 		event: Event,

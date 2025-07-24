@@ -41,6 +41,10 @@ impl<L: Layable> Layable for Debug<L> {
 
 		self.layable.render(d, det, scale)
 	}
+
+	fn tick(&mut self) {
+		self.layable.tick();
+	}
 	fn pass_event(
 		&mut self,
 		event: crate::core::Event,
