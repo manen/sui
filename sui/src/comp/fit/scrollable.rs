@@ -2,7 +2,7 @@ use raylib::prelude::RaylibDraw;
 
 use crate::{
 	core::{Event, ImmutableWrap, MouseEvent},
-	Layable,
+	Details, Layable,
 };
 
 use super::Crop;
@@ -13,7 +13,7 @@ const SCROLLBAR_BG_COLOR: raylib::color::Color = crate::color(33, 35, 38, 255);
 const SCROLLBAR_HANDLE_COLOR: raylib::color::Color = crate::color(106, 113, 122, 255);
 
 const DEBUG: bool = false;
-const DEBUG_SCROLLBAR: bool = true;
+const DEBUG_SCROLLBAR: bool = false;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ScrollableMode {
@@ -23,6 +23,7 @@ pub enum ScrollableMode {
 	Both,
 }
 impl ScrollableMode {
+	/// (vertical, horizontal)
 	fn multipliers(&self) -> (i32, i32) {
 		match self {
 			ScrollableMode::Neither => (0, 0),
@@ -31,10 +32,12 @@ impl ScrollableMode {
 			ScrollableMode::Both => (1, 1),
 		}
 	}
+	/// (vertical, horizontal)
 	fn multipliers_f32(&self) -> (f32, f32) {
 		let (x, y) = self.multipliers();
 		(x as f32, y as f32)
 	}
+	/// (vertical, horizontal)
 	fn bools(&self) -> (bool, bool) {
 		match self {
 			ScrollableMode::Neither => (false, false),
@@ -97,7 +100,7 @@ impl<L: Layable> Scrollable<L> {
 		)
 	}
 	fn view_mut(&mut self, scale: f32) -> View<&mut L> {
-		self.clamp(None);
+		// self.clamp(None);
 		let (scroll_x, scroll_y) = (self.state.scroll_x, self.state.scroll_y);
 
 		View::new(
@@ -138,7 +141,9 @@ impl<L: Layable> Scrollable<L> {
 		let scrollbar_at_side = scrollbar_at_side && l_h > view_det.ah;
 		let scrollbar_at_bottom = scrollbar_at_bottom && l_w > view_det.aw;
 
-		dbg!(scrollbar_at_side, scrollbar_at_bottom);
+		if DEBUG_SCROLLBAR {
+			dbg!(scrollbar_at_side, scrollbar_at_bottom);
+		}
 
 		if scrollbar_at_side {
 			let (scrollbar_base_x, scrollbar_base_y) = (view_det.x + l_w, view_det.y);
@@ -196,11 +201,17 @@ impl<L: Layable> Scrollable<L> {
 			);
 		}
 	}
-	fn clamp(&mut self, l_size: Option<(i32, i32)>) {
+	fn clamp(&mut self, det: Details, l_size: Option<(i32, i32)>) {
+		let (vert, horiz) = self.mode.bools();
+		let x_off = if horiz { det.aw } else { 0 };
+		let y_off = if vert { det.ah } else { 0 };
+
+		dbg!(x_off, y_off);
+
 		let (l_w, l_h) = l_size.unwrap_or_else(|| self.layable.size());
 
-		self.state.scroll_x = self.state.scroll_x.min(l_w).max(0);
-		self.state.scroll_y = self.state.scroll_y.min(l_h).max(0);
+		self.state.scroll_x = self.state.scroll_x.min(l_w - x_off).max(0);
+		self.state.scroll_y = self.state.scroll_y.min(l_h - y_off).max(0);
 	}
 }
 impl<L: Layable> Layable for Scrollable<L> {
@@ -279,7 +290,7 @@ impl<L: Layable> Layable for Scrollable<L> {
 				} else {
 					self.state.scroll_y -= (amount * 10.0) as i32;
 				}
-				self.clamp(None);
+				self.clamp(det, None);
 			}
 			Event::MouseEvent(MouseEvent::MouseClick {
 				x: mouse_x,
