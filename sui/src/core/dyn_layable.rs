@@ -261,25 +261,39 @@ impl<'a> Clone for DynamicLayable<'a> {
 mod dynamiclayable_tests {
 	use super::*;
 
+	#[derive(Clone, Debug, PartialEq, Eq)]
+	struct TakeDummy(Vec<i32>);
+	impl Layable for TakeDummy {
+		fn size(&self) -> (i32, i32) {
+			(200, 200)
+		}
+		fn render(&self, _: &mut crate::Handle, _: Details, _: f32) {}
+		fn pass_event(
+			&mut self,
+			event: Event,
+			_: Details,
+			_: f32,
+		) -> Option<crate::core::ReturnEvent> {
+			Some(Event::ret(event))
+		}
+	}
+
 	#[test]
 	fn test_assert() {
 		eprintln!("begin assert testing DynamicLayable");
-		test_single(crate::text(
-			"hello i'm just testing to see if all this raw memory shit broke or nah",
-			100,
-		));
+		test_single(TakeDummy(Vec::new()));
 		test_single(crate::div(vec![
-			crate::text("hellop", 1),
-			crate::text("hi".to_owned(), 14),
-			crate::text("yessirski", 54),
+			TakeDummy(Vec::new()),
+			TakeDummy(Vec::new()),
+			TakeDummy(Vec::new()),
 		]));
 		test_single(crate::comp::Div::new(
 			false,
 			false,
 			vec![
-				crate::text("hellop", 1),
-				crate::text("hi".to_owned(), 14),
-				crate::text("yessirski", 54),
+				TakeDummy(Vec::new()),
+				TakeDummy(Vec::new()),
+				TakeDummy(Vec::new()),
 			],
 		));
 	}
@@ -303,17 +317,18 @@ mod dynamiclayable_tests {
 
 	#[test]
 	fn test_clone() {
-		let d_a = DynamicLayable::new(crate::text("hi", 16));
+		let d_a = DynamicLayable::new(TakeDummy(vec![4, 5, 6]));
 		let d_b = d_a.clone();
 
 		test_pair(d_a, d_b);
 
-		let xample = String::from("starting value");
+		let mut inc = 0..;
+		let mut gen_inc = move || (&mut inc).take(3).collect::<Vec<_>>();
 
 		let d_c = DynamicLayable::new(crate::div(vec![
-			crate::text(&xample, 1),
-			crate::text("hi", 14),
-			crate::text("yessirski", 54),
+			TakeDummy(gen_inc()),
+			TakeDummy(gen_inc()),
+			TakeDummy(gen_inc()),
 		]));
 		let d_d = d_c.clone();
 
@@ -353,24 +368,7 @@ mod dynamiclayable_tests {
 
 	#[test]
 	fn test_take() {
-		#[derive(Clone, Debug, PartialEq, Eq)]
-		struct Dummy(Vec<i32>);
-		impl Layable for Dummy {
-			fn size(&self) -> (i32, i32) {
-				(200, 200)
-			}
-			fn render(&self, _: &mut crate::Handle, _: Details, _: f32) {}
-			fn pass_event(
-				&mut self,
-				event: Event,
-				_: Details,
-				_: f32,
-			) -> Option<crate::core::ReturnEvent> {
-				Some(Event::ret(event))
-			}
-		}
-
-		let d = DynamicLayable::new(Dummy(vec![30]));
+		let d = DynamicLayable::new(TakeDummy(vec![30]));
 		let d_cloned = d.clone();
 
 		assert!(!d_cloned.can_take::<crate::Comp>());
@@ -378,8 +376,8 @@ mod dynamiclayable_tests {
 		assert!(!d.can_take::<crate::Comp>());
 		assert!(!d.can_take::<crate::Text>());
 
-		assert_eq!(d_cloned.take(), Some(Dummy(vec![30])));
-		assert_eq!(d.take(), Some(Dummy(vec![30])));
+		assert_eq!(d_cloned.take(), Some(TakeDummy(vec![30])));
+		assert_eq!(d.take(), Some(TakeDummy(vec![30])));
 	}
 
 	#[test]
