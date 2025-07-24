@@ -8,7 +8,7 @@ use crate::{
 pub struct Clickable<C, F, T>
 where
 	T: Clone + 'static,
-	F: Fn((i32, i32)) -> T,
+	F: FnMut((i32, i32)) -> T,
 	C: Layable,
 {
 	comp: C,
@@ -16,7 +16,7 @@ where
 	/// if true, it will check if self.comp bubbles anything back and only respond if it doesn't
 	fallback: bool,
 }
-impl<C: Layable + std::fmt::Debug, T: Clone, F: Fn((i32, i32)) -> T> std::fmt::Debug
+impl<C: Layable + std::fmt::Debug, T: Clone, F: FnMut((i32, i32)) -> T> std::fmt::Debug
 	for Clickable<C, F, T>
 {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -26,7 +26,7 @@ impl<C: Layable + std::fmt::Debug, T: Clone, F: Fn((i32, i32)) -> T> std::fmt::D
 			.finish()
 	}
 }
-impl<C: Layable, T: Clone, F: Fn((i32, i32)) -> T> Clickable<C, F, T> {
+impl<C: Layable, T: Clone, F: FnMut((i32, i32)) -> T> Clickable<C, F, T> {
 	pub fn new(gen_ret: F, comp: C) -> Self {
 		Clickable {
 			comp,
@@ -46,7 +46,7 @@ impl<C: Layable, T: Clone, F: Fn((i32, i32)) -> T> Clickable<C, F, T> {
 		self.comp
 	}
 }
-impl<T: Clone, C: Layable, F: Fn((i32, i32)) -> T> Layable for Clickable<C, F, T> {
+impl<T: Clone, C: Layable, F: FnMut((i32, i32)) -> T> Layable for Clickable<C, F, T> {
 	fn size(&self) -> (i32, i32) {
 		self.comp.size()
 	}
@@ -64,7 +64,7 @@ impl<T: Clone, C: Layable, F: Fn((i32, i32)) -> T> Layable for Clickable<C, F, T
 		det: crate::Details,
 		scale: f32,
 	) -> Option<crate::core::ReturnEvent> {
-		let respond = || match event {
+		let mut respond = || match event {
 			Event::MouseEvent(MouseEvent::MouseClick { x, y }) => {
 				if det.is_inside(x, y) {
 					Some(Event::ret((self.gen_ret)((x, y))))

@@ -1,7 +1,7 @@
 use raylib::prelude::RaylibDraw;
 
 use crate::{
-	core::{Event, ImmutableWrap, MouseEvent, Store},
+	core::{Event, ImmutableWrap, MouseEvent},
 	Layable,
 };
 
@@ -13,6 +13,7 @@ const SCROLLBAR_BG_COLOR: raylib::color::Color = crate::color(33, 35, 38, 255);
 const SCROLLBAR_HANDLE_COLOR: raylib::color::Color = crate::color(106, 113, 122, 255);
 
 const DEBUG: bool = false;
+const DEBUG_SCROLLBAR: bool = true;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ScrollableMode {
@@ -69,20 +70,16 @@ pub enum ScrollbarAction {
 
 #[derive(Clone, Debug)]
 pub struct Scrollable<L: Layable> {
-	state: Store<ScrollableState>,
+	state: ScrollableState,
 	mode: ScrollableMode,
 	layable: L,
 }
 impl<L: Layable> Scrollable<L> {
 	/// will crop content outside boundaries
-	pub fn new(
-		state: Store<ScrollableState>,
-		mode: ScrollableMode,
-		layable: L,
-	) -> Scrollable<Crop<L>> {
+	pub fn new(state: ScrollableState, mode: ScrollableMode, layable: L) -> Scrollable<Crop<L>> {
 		Scrollable::new_uncropped(state, mode, Crop::new(layable))
 	}
-	pub fn new_uncropped(state: Store<ScrollableState>, mode: ScrollableMode, layable: L) -> Self {
+	pub fn new_uncropped(state: ScrollableState, mode: ScrollableMode, layable: L) -> Self {
 		Self {
 			state,
 			mode,
@@ -91,8 +88,7 @@ impl<L: Layable> Scrollable<L> {
 	}
 
 	fn view(&self, scale: f32) -> View<ImmutableWrap<L>> {
-		self.clamp(None);
-		let (scroll_x, scroll_y) = self.state.with_borrow(|a| (a.scroll_x, a.scroll_y));
+		let (scroll_x, scroll_y) = (self.state.scroll_x, self.state.scroll_y);
 
 		View::new(
 			ImmutableWrap::new(&self.layable),
@@ -102,7 +98,7 @@ impl<L: Layable> Scrollable<L> {
 	}
 	fn view_mut(&mut self, scale: f32) -> View<&mut L> {
 		self.clamp(None);
-		let (scroll_x, scroll_y) = self.state.with_borrow(|a| (a.scroll_x, a.scroll_y));
+		let (scroll_x, scroll_y) = (self.state.scroll_x, self.state.scroll_y);
 
 		View::new(
 			&mut self.layable,
@@ -142,11 +138,13 @@ impl<L: Layable> Scrollable<L> {
 		let scrollbar_at_side = scrollbar_at_side && l_h > view_det.ah;
 		let scrollbar_at_bottom = scrollbar_at_bottom && l_w > view_det.aw;
 
+		dbg!(scrollbar_at_side, scrollbar_at_bottom);
+
 		if scrollbar_at_side {
-			let (scrollbar_base_x, scrollbar_base_y) = (view_det.x + view_det.aw, view_det.y);
+			let (scrollbar_base_x, scrollbar_base_y) = (view_det.x + l_w, view_det.y);
 			let (scrollbar_w, scrollbar_h) = ((SCROLLBAR_WIDTH * scale) as i32, view_det.ah);
 
-			let (_, scroll_y) = self.state.with_borrow(|a| (a.scroll_x, a.scroll_y));
+			let (_, scroll_y) = (self.state.scroll_x, self.state.scroll_y);
 
 			let (scrollbar_handle_w, scrollbar_handle_h) = (
 				(SCROLLBAR_WIDTH * scale) as i32,
@@ -170,10 +168,10 @@ impl<L: Layable> Scrollable<L> {
 			);
 		}
 		if scrollbar_at_bottom {
-			let (scrollbar_base_x, scrollbar_base_y) = (view_det.x, view_det.y + view_det.ah);
+			let (scrollbar_base_x, scrollbar_base_y) = (view_det.x, view_det.y + l_h);
 			let (scrollbar_w, scrollbar_h) = (view_det.aw, (SCROLLBAR_WIDTH * scale) as i32);
 
-			let (scroll_x, _) = self.state.with_borrow(|a| (a.scroll_x, a.scroll_y));
+			let (scroll_x, _) = (self.state.scroll_x, self.state.scroll_y);
 
 			let (scrollbar_handle_w, scrollbar_handle_h) = (
 				// ((l_w as f32 - det.aw as f32) / l_w as f32 * det.aw as f32 * scale) as i32,
@@ -198,12 +196,11 @@ impl<L: Layable> Scrollable<L> {
 			);
 		}
 	}
-	fn clamp(&self, l_size: Option<(i32, i32)>) {
+	fn clamp(&mut self, l_size: Option<(i32, i32)>) {
 		let (l_w, l_h) = l_size.unwrap_or_else(|| self.layable.size());
-		self.state.with_mut_borrow(|a| {
-			a.scroll_x = a.scroll_x.min(l_w).max(0);
-			a.scroll_y = a.scroll_y.min(l_h).max(0);
-		});
+
+		self.state.scroll_x = self.state.scroll_x.min(l_w).max(0);
+		self.state.scroll_y = self.state.scroll_y.min(l_h).max(0);
 	}
 }
 impl<L: Layable> Layable for Scrollable<L> {
@@ -225,6 +222,10 @@ impl<L: Layable> Layable for Scrollable<L> {
 			|(scrollbar_base_x, scrollbar_base_y, scrollbar_w, scrollbar_h),
 			 (handle_base_x, handle_base_y, handle_w, handle_h),
 			 _| {
+				if DEBUG_SCROLLBAR {
+					dbg!(scrollbar_base_x, scrollbar_base_y, scrollbar_w, scrollbar_h);
+				}
+
 				d.draw_rectangle(
 					scrollbar_base_x,
 					scrollbar_base_y,
@@ -273,19 +274,18 @@ impl<L: Layable> Layable for Scrollable<L> {
 		// - release stops the action
 		match event {
 			Event::MouseEvent(MouseEvent::Scroll { amount, .. }) => {
-				self.state.with_mut_borrow(|a| {
-					if self.mode == ScrollableMode::Horizontal {
-						a.scroll_x -= (amount * 10.0) as i32;
-					} else {
-						a.scroll_y -= (amount * 10.0) as i32;
-					}
-				});
+				if self.mode == ScrollableMode::Horizontal {
+					self.state.scroll_x -= (amount * 10.0) as i32;
+				} else {
+					self.state.scroll_y -= (amount * 10.0) as i32;
+				}
 				self.clamp(None);
 			}
 			Event::MouseEvent(MouseEvent::MouseClick {
 				x: mouse_x,
 				y: mouse_y,
 			}) => {
+				let mut state = self.state;
 				self.for_each_scrollbar(Some((l_w, l_h)), view_det, scale, |_, handle, bottom| {
 					let handle_det = crate::Details {
 						x: handle.0,
@@ -295,27 +295,26 @@ impl<L: Layable> Layable for Scrollable<L> {
 					};
 
 					if handle_det.is_inside(mouse_x, mouse_y) {
-						self.state.with_mut_borrow(|s| {
-							s.action = if bottom {
-								ScrollbarAction::ScrollingXFrom {
-									before: s.scroll_x,
-									drag_start_c: mouse_x,
-								}
-							} else {
-								ScrollbarAction::ScrollingYFrom {
-									before: s.scroll_y,
-									drag_start_c: mouse_y,
-								}
+						state.action = if bottom {
+							ScrollbarAction::ScrollingXFrom {
+								before: state.scroll_x,
+								drag_start_c: mouse_x,
 							}
-						})
+						} else {
+							ScrollbarAction::ScrollingYFrom {
+								before: state.scroll_y,
+								drag_start_c: mouse_y,
+							}
+						}
 					}
 				});
+				self.state = state;
 			}
 			Event::MouseEvent(MouseEvent::MouseHeld {
 				x: mouse_x,
 				y: mouse_y,
 			}) => {
-				self.state.with_mut_borrow(|s| match s.action {
+				match self.state.action {
 					ScrollbarAction::ScrollingXFrom {
 						before,
 						drag_start_c,
@@ -329,7 +328,7 @@ impl<L: Layable> Layable for Scrollable<L> {
 						// basically all this math is just the inverse of how we calculate where the scrollbar handle should be
 						// same for ScrollingFromY
 
-						s.scroll_x = og
+						self.state.scroll_x = og
 							.min(l_w - det.aw + (SCROLLBAR_WIDTH * scale * mul_x) as i32)
 							.max(0);
 					}
@@ -342,18 +341,16 @@ impl<L: Layable> Layable for Scrollable<L> {
 								/ (view_det.ah as f32 - SCROLLBAR_LENGTH * scale)
 								* (l_h - view_det.ah) as f32) as i32;
 
-						s.scroll_y = og
+						self.state.scroll_y = og
 							.min(l_h - det.ah + (SCROLLBAR_WIDTH * scale * mul_y) as i32)
 							.max(0);
 					}
 					_ => (), // no action has been started
-				});
+				};
 			}
 			Event::MouseEvent(MouseEvent::MouseRelease { .. }) => {
 				// expects everything to be handled in Event::MouseHeld
-				self.state.with_mut_borrow(|s| {
-					s.action = ScrollbarAction::None;
-				});
+				self.state.action = ScrollbarAction::None;
 			}
 			_ => (),
 		}

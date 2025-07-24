@@ -11,7 +11,7 @@ use crate::{
 		scrollable::{ScrollableMode, ScrollableState},
 		Comp, Compatible,
 	},
-	core::{Event, FeaturedReturn, ImmutableWrap, ReturnEvent, Store},
+	core::{Event, FeaturedReturn, ImmutableWrap, ReturnEvent},
 	form::FocusHandler,
 	Details, DynamicLayable, Layable,
 };
@@ -223,27 +223,27 @@ pub trait LayableExt: Layable + Sized {
 	}
 
 	/// see [comp::Scrollable]
-	fn scrollable_vert(self, state: Store<ScrollableState>) -> comp::Scrollable<comp::Crop<Self>> {
+	fn scrollable_vert(self, state: ScrollableState) -> comp::Scrollable<comp::Crop<Self>> {
 		comp::Scrollable::new(state, ScrollableMode::Vertical, self)
 	}
 	/// see [comp::Scrollable]
-	fn scrollable_horiz(self, state: Store<ScrollableState>) -> comp::Scrollable<comp::Crop<Self>> {
+	fn scrollable_horiz(self, state: ScrollableState) -> comp::Scrollable<comp::Crop<Self>> {
 		comp::Scrollable::new(state, ScrollableMode::Horizontal, self)
 	}
 	/// see [comp::Scrollable]
-	fn scrollable(self, state: Store<ScrollableState>) -> comp::Scrollable<comp::Crop<Self>> {
+	fn scrollable(self, state: ScrollableState) -> comp::Scrollable<comp::Crop<Self>> {
 		comp::Scrollable::new(state, ScrollableMode::Both, self)
 	}
 
 	/// see [comp::Clickable]
-	fn clickable<T: Clone + 'static, F: Fn((i32, i32)) -> T>(
+	fn clickable<T: Clone + 'static, F: FnMut((i32, i32)) -> T>(
 		self,
 		gen_ret: F,
 	) -> comp::Clickable<Self, F, T> {
 		comp::Clickable::new(gen_ret, self)
 	}
 	/// see [comp::Clickable]
-	fn clickable_fallback<T: Clone + 'static, F: Fn((i32, i32)) -> T>(
+	fn clickable_fallback<T: Clone + 'static, F: FnMut((i32, i32)) -> T>(
 		self,
 		gen_ret: F,
 	) -> comp::Clickable<Self, F, T> {
