@@ -206,8 +206,6 @@ impl<L: Layable> Scrollable<L> {
 		let x_off = if horiz { det.aw } else { 0 };
 		let y_off = if vert { det.ah } else { 0 };
 
-		dbg!(x_off, y_off);
-
 		let (l_w, l_h) = l_size.unwrap_or_else(|| self.layable.size());
 
 		self.state.scroll_x = self.state.scroll_x.min(l_w - x_off).max(0);
