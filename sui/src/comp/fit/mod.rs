@@ -5,7 +5,7 @@ pub mod fixed_size;
 pub use fixed_size::FixedSize;
 
 pub mod scrollable;
-pub use scrollable::Scrollable;
+pub use scrollable::{Scrollable, View};
 
 pub mod crop;
 pub use crop::Crop;

@@ -222,6 +222,11 @@ pub trait LayableExt: Layable + Sized {
 		comp::Margin::horizontal(margin, self)
 	}
 
+	/// see [comp::View]
+	fn view(self, x: i32, y: i32) -> comp::View<Self> {
+		comp::View::new(self, x, y)
+	}
+
 	/// see [comp::Scrollable]
 	fn scrollable_vert(self, state: ScrollableState) -> comp::Scrollable<comp::Crop<Self>> {
 		comp::Scrollable::new(state, ScrollableMode::Vertical, self)
