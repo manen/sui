@@ -27,6 +27,27 @@ impl MouseEvent {
 			&Self::Scroll { x, y, amount: _ } => (x, y),
 		}
 	}
+
+	pub fn with_cursor_pos_transform(self, f: impl FnOnce((i32, i32)) -> (i32, i32)) -> Self {
+		match self {
+			Self::MouseClick { x, y } => {
+				let (x, y) = f((x, y));
+				Self::MouseClick { x, y }
+			}
+			Self::MouseHeld { x, y } => {
+				let (x, y) = f((x, y));
+				Self::MouseHeld { x, y }
+			}
+			Self::MouseRelease { x, y } => {
+				let (x, y) = f((x, y));
+				Self::MouseRelease { x, y }
+			}
+			Self::Scroll { x, y, amount } => {
+				let (x, y) = f((x, y));
+				Self::Scroll { x, y, amount }
+			}
+		}
+	}
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

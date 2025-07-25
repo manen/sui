@@ -1,4 +1,4 @@
-use crate::Layable;
+use crate::{core::Event, Layable};
 
 #[derive(Clone, Debug)]
 pub struct Scale<L: Layable> {
@@ -25,10 +25,19 @@ impl<L: Layable> Layable for Scale<L> {
 	}
 	fn pass_event(
 		&mut self,
-		event: crate::core::Event,
+		event: Event,
 		det: crate::Details,
 		scale: f32,
 	) -> Option<crate::core::ReturnEvent> {
+		let event = match event {
+			Event::MouseEvent(m) => Event::MouseEvent(m.with_cursor_pos_transform(|(x, y)| {
+				(
+					(x as f32 / self.scale) as i32,
+					(y as f32 / self.scale) as i32,
+				)
+			})),
+			_ => event,
+		};
 		self.layable.pass_event(event, det, scale)
 	}
 }

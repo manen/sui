@@ -415,6 +415,12 @@ impl<L: Layable> Layable for View<L> {
 		det: crate::Details,
 		scale: f32,
 	) -> Option<crate::core::ReturnEvent> {
+		let event = match event {
+			Event::KeyboardEvent(_, _) => event,
+			Event::MouseEvent(a) => Event::MouseEvent(
+				a.with_cursor_pos_transform(|(x, y)| (x + self.base_x, y + self.base_y)),
+			),
+		};
 		self.layable
 			.pass_event(event, self.l_det(det, scale), scale)
 	}
