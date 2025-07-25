@@ -12,6 +12,7 @@ pub mod tex;
 
 pub mod form;
 
+pub(crate) mod root_ctx;
 pub mod ui;
 pub use ui::*;
 

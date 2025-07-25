@@ -1,9 +1,4 @@
-use std::{borrow::Cow, ops::DerefMut};
-
-use raylib::{
-	ffi::{KeyboardKey, MouseButton},
-	RaylibHandle,
-};
+use std::borrow::Cow;
 
 use crate::{
 	comp::{
@@ -11,10 +6,11 @@ use crate::{
 		scrollable::{ScrollableMode, ScrollableState},
 		Comp, Compatible,
 	},
-	core::{Event, FeaturedReturn, ImmutableWrap, ReturnEvent},
-	form::FocusHandler,
+	core::ImmutableWrap,
 	Details, DynamicLayable, Layable,
 };
+
+pub use crate::root_ctx::*;
 
 pub fn custom<'a, L: Layable + std::fmt::Debug + Clone + 'a>(layable: L) -> DynamicLayable<'a> {
 	crate::DynamicLayable::new(layable)
@@ -28,129 +24,6 @@ pub fn div_h<D: comp::div::DivComponents>(components: D) -> comp::Div<D> {
 }
 pub fn text<'a, T: Into<Cow<'a, str>>>(text: T, size: i32) -> Comp<'a> {
 	comp::Text::new(text, size).into_comp()
-}
-
-/// `RootContext` contains everything needed to calculate Details and scales, for both rendering
-/// and events. this is so there's no way [Layable::render] and [Layable::pass_event]
-/// could work with different data.
-pub struct RootContext<L: Layable> {
-	layable: L,
-	det: Details,
-	scale: f32,
-}
-impl<L: Layable> RootContext<L> {
-	pub fn new(layable: L, det: Details, scale: f32) -> Self {
-		RootContext {
-			layable,
-			det,
-			scale,
-		}
-	}
-
-	pub fn render(&self, d: &mut crate::Handle) {
-		self.layable.render(d, self.det, self.scale);
-	}
-
-	pub fn tick(&mut self) {
-		self.layable.tick();
-	}
-	pub fn handle_input<'b, E: FeaturedReturn, H: DerefMut<Target = RaylibHandle>>(
-		&'b mut self,
-		rl: &mut H,
-		focus: &FocusHandler,
-	) -> Vec<Result<E, ReturnEvent>> {
-		use crate::core::KeyboardEvent;
-		use crate::core::MouseEvent;
-
-		let (ptr_x, ptr_y) = (rl.get_mouse_x(), rl.get_mouse_y());
-
-		let mouse_events = if ptr_x as f32 > self.det.x as f32 && ptr_y as f32 > self.det.y as f32 {
-			let mouse_left_pressed = if rl.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
-				Some(Event::MouseEvent(MouseEvent::MouseClick {
-					x: ptr_x,
-					y: ptr_y,
-				}))
-			} else {
-				None
-			};
-			let mouse_left_down = if rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT) {
-				Some(Event::MouseEvent(MouseEvent::MouseHeld {
-					x: ptr_x,
-					y: ptr_y,
-				}))
-			} else {
-				None
-			};
-			let mouse_left_released = if rl.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT)
-			{
-				Some(Event::MouseEvent(MouseEvent::MouseRelease {
-					x: ptr_x,
-					y: ptr_y,
-				}))
-			} else {
-				None
-			};
-
-			let mouse_wheel_move = rl.get_mouse_wheel_move();
-			let mouse_wheel = if mouse_wheel_move != 0.0 {
-				Some(Event::MouseEvent(MouseEvent::Scroll {
-					x: ptr_x,
-					y: ptr_y,
-					amount: mouse_wheel_move,
-				}))
-			} else {
-				None
-			};
-
-			mouse_left_pressed
-				.into_iter()
-				.chain(mouse_left_down)
-				.chain(mouse_left_released)
-				.chain(mouse_wheel)
-		} else {
-			None.into_iter().chain(None).chain(None).chain(None)
-		};
-
-		let keyboard_events = {
-			let key = rl.get_char_pressed();
-			let key = match key {
-				Some(a) => Some(a),
-				None => {
-					if rl.is_key_pressed(KeyboardKey::KEY_BACKSPACE) {
-						Some(crate::form::typable::BACKSPACE)
-					} else if rl.is_key_pressed(KeyboardKey::KEY_ENTER) {
-						Some('\n')
-					} else {
-						None
-					}
-				}
-			};
-			key.map(|key| {
-				Some(Event::KeyboardEvent(
-					focus.get(),
-					KeyboardEvent::CharPressed(key),
-				))
-			})
-			.flatten()
-		};
-
-		mouse_events
-			.chain(keyboard_events)
-			.map(|event| {
-				self.layable
-					.pass_event(event, self.det, self.scale)
-					.map(|event| {
-						let cast = E::cast_event(event);
-						if cast.can_take::<E>() {
-							Ok(cast.take().expect("can_take returned true, taking failed"))
-						} else {
-							Err(cast)
-						}
-					})
-			})
-			.filter_map(|a| a)
-			.collect::<Vec<_>>()
-	}
 }
 
 /// LayableExt provides associated functions for most comp::*::new calls

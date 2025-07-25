@@ -32,7 +32,7 @@ impl MouseEvent {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum KeyboardEvent {
 	CharPressed(char),
-	// this is enough for now
+	KeyDown(raylib::ffi::KeyboardKey),
 }
 
 // -
