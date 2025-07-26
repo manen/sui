@@ -4,7 +4,7 @@ pub mod core;
 pub use core::{Details, DynamicLayable, Handle, Layable};
 
 pub mod comp;
-pub use comp::{Comp, Compatible, Div, SelectBar, Text};
+pub use comp::{Comp, Compatible, Div, Text};
 
 pub mod dialog;
 
