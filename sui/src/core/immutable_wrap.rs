@@ -5,6 +5,7 @@ use crate::Layable;
 ///
 /// &L has implemented Layable up until right now so this is here in case any code
 /// anywhere depended on that
+#[derive(Clone, Debug)]
 pub struct ImmutableWrap<'a, L: Layable>(pub &'a L);
 impl<'a, L: Layable> ImmutableWrap<'a, L> {
 	pub fn new(reference: &'a L) -> Self {

@@ -4,6 +4,9 @@ use crate::{
 	Details,
 };
 
+pub mod space_between;
+pub use space_between::SpaceBetween;
+
 pub trait DivComponents: Sized {
 	type L: Layable;
 
@@ -199,7 +202,7 @@ impl<D: DivComponents> Layable for Div<D> {
 						};
 
 						if comp_det.is_inside(mouse_x, mouse_y) {
-							return comp.pass_event(event, comp_det, scale);
+							return comp.pass_event(event, comp_det, scale); // TODO mouse coords aren't translated
 						}
 
 						if !self.horizontal {

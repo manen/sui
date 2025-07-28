@@ -144,4 +144,8 @@ impl Details {
 		x >= self.x && x <= self.x + self.aw // x
 			&& y >= self.y && y <= self.y + self.ah
 	}
+	pub fn is_inside_tuple(&self, (x, y): (i32, i32)) -> bool {
+		x >= self.x && x <= self.x + self.aw // x
+			&& y >= self.y && y <= self.y + self.ah
+	}
 }
