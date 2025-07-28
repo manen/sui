@@ -60,7 +60,6 @@ impl<L: Layable> DivComponents for L {
 pub struct Div<D: DivComponents> {
 	components: D,
 	horizontal: bool,
-	fill: bool,
 }
 impl<D: DivComponents + Default> Div<D> {
 	pub fn empty() -> Self {
@@ -74,18 +73,17 @@ impl<D: DivComponents + Default> Div<D> {
 	}
 }
 impl<D: DivComponents> Div<D> {
-	pub fn new(horizontal: bool, fill: bool, components: D) -> Self {
+	pub fn new(horizontal: bool, components: D) -> Self {
 		Self {
 			components: components,
 			horizontal,
-			fill,
 		}
 	}
 	pub fn vertical(components: D) -> Self {
-		Self::new(false, false, components)
+		Self::new(false, components)
 	}
 	pub fn horizontal(components: D) -> Self {
-		Self::new(true, false, components)
+		Self::new(true, components)
 	}
 
 	pub fn as_horizontal(self) -> Self {
@@ -93,9 +91,6 @@ impl<D: DivComponents> Div<D> {
 			horizontal: true,
 			..self
 		}
-	}
-	pub fn as_fill(self) -> Self {
-		Self { fill: true, ..self }
 	}
 }
 impl<'a> Div<Vec<Comp<'a>>> {
@@ -121,14 +116,6 @@ impl<D: DivComponents> Layable for Div<D> {
 	}
 
 	fn render(&self, d: &mut crate::Handle, det: Details, scale: f32) {
-		let (self_w, self_h) = self.size();
-
-		let (self_w, self_h) = if self.fill {
-			(self_w.min(det.aw), self_h.min(det.ah))
-		} else {
-			(self_w, self_h)
-		};
-
 		let (mut x, mut y) = (det.x, det.y);
 		for comp in self.components.iter_components() {
 			let (comp_w, comp_h) = comp.size();
@@ -136,12 +123,12 @@ impl<D: DivComponents> Layable for Div<D> {
 				x,
 				y,
 				aw: if !self.horizontal {
-					(self_w as f32 * scale) as i32
+					(det.aw as f32 * scale) as i32
 				} else {
 					comp_w
 				},
 				ah: if self.horizontal {
-					(self_h as f32 * scale) as i32
+					(det.ah as f32 * scale) as i32
 				} else {
 					comp_h
 				},
@@ -176,12 +163,6 @@ impl<D: DivComponents> Layable for Div<D> {
 			Some(components) => match event {
 				Event::MouseEvent(m_event) => {
 					let (mouse_x, mouse_y) = m_event.at();
-
-					let (self_w, self_h) = if self.fill {
-						(self_w.min(det.aw), self_h.min(det.ah))
-					} else {
-						(self_w, self_h)
-					};
 
 					let (mut x, mut y) = (det.x, det.y);
 					for comp in components {
@@ -230,6 +211,6 @@ impl<D: DivComponents> Layable for Div<D> {
 impl<L: Layable> FromIterator<L> for Div<Vec<L>> {
 	fn from_iter<T: IntoIterator<Item = L>>(iter: T) -> Self {
 		let iter = iter.into_iter();
-		Div::new(false, false, iter.collect::<Vec<_>>())
+		Div::new(false, iter.collect::<Vec<_>>())
 	}
 }

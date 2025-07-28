@@ -289,7 +289,6 @@ mod dynamiclayable_tests {
 		]));
 		test_single(crate::comp::Div::new(
 			false,
-			false,
 			vec![
 				TakeDummy(Vec::new()),
 				TakeDummy(Vec::new()),

@@ -17,10 +17,10 @@ pub fn custom<'a, L: Layable + std::fmt::Debug + Clone + 'a>(layable: L) -> Dyna
 }
 
 pub fn div<D: comp::div::DivComponents>(components: D) -> comp::Div<D> {
-	comp::Div::new(false, false, components)
+	comp::Div::new(false, components)
 }
 pub fn div_h<D: comp::div::DivComponents>(components: D) -> comp::Div<D> {
-	comp::Div::new(true, false, components)
+	comp::Div::new(true, components)
 }
 pub fn text<'a, T: Into<Cow<'a, str>>>(text: T, size: i32) -> Comp<'a> {
 	comp::Text::new(text, size).into_comp()

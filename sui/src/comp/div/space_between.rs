@@ -24,7 +24,7 @@ macro_rules! single_size {
 	}};
 }
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 #[derive(Clone, Debug)]
 pub struct SpaceBetween<D: DivComponents> {
@@ -56,7 +56,7 @@ impl<D: DivComponents> SpaceBetween<D> {
 		}
 		let components = components.max(1);
 
-		let remaining_space = dbg!(single_size((det.aw, det.ah)) - total_size);
+		let remaining_space = single_size((det.aw, det.ah)) - total_size;
 		let gap_scaled = remaining_space as f32 / components as f32 * scale;
 
 		gap_scaled as i32
