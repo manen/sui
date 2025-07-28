@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 
 use crate::{Asset, Assets, Result};
-use std::{io::ErrorKind, path::PathBuf};
+use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
 /// implementor of [crate::Assets] that reads assets straight from the filesystem

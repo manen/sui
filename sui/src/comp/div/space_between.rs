@@ -1,6 +1,6 @@
 use raylib::prelude::RaylibDraw;
 
-use crate::{comp::div::DivComponents, core::Event, Color, Details, Layable};
+use crate::{comp::div::DivComponents, core::Event, Details, Layable};
 
 macro_rules! single_size {
 	($self:expr) => {{
