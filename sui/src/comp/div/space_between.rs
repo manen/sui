@@ -48,12 +48,13 @@ impl<D: DivComponents> SpaceBetween<D> {
 	pub fn calculate_gap(&self, det: Details, scale: f32) -> i32 {
 		let single_size = single_size!(self);
 
-		let mut components = 0;
+		let mut components = -1;
 		let mut total_size = 0;
 		for comp in self.components.iter_components() {
 			total_size += single_size(comp.size());
 			components += 1;
 		}
+		let components = components.max(1);
 
 		let remaining_space = dbg!(single_size((det.aw, det.ah)) - total_size);
 		let gap_scaled = remaining_space as f32 / components as f32 * scale;
