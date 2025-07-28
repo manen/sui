@@ -88,7 +88,21 @@ impl Texture {
 		Self::new_from_raylib(tex)
 	}
 
+	pub fn size(&self) -> (i32, i32) {
+		(self.tex.width, self.tex.height)
+	}
+	pub fn width(&self) -> i32 {
+		self.tex.width
+	}
+	pub fn height(&self) -> i32 {
+		self.tex.height
+	}
+
 	pub fn render(&self, d: &mut crate::Handle, det: Details) {
+		self.render_with_rotation(d, det, 0.0);
+	}
+	/// does not correct for the position change caused by the rotation
+	pub fn render_with_rotation(&self, d: &mut crate::Handle, det: Details, degrees: f32) {
 		d.draw_texture_pro(
 			&self.tex,
 			Rectangle {
@@ -104,7 +118,7 @@ impl Texture {
 				height: det.ah as _,
 			},
 			Vector2::default(),
-			Default::default(),
+			degrees,
 			Color::new(255, 255, 255, 255),
 		);
 	}
