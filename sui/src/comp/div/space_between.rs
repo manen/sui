@@ -25,6 +25,7 @@ macro_rules! single_size {
 }
 
 const DEBUG: bool = false;
+const PASS_EVENT_DEBUG: bool = false;
 
 #[derive(Clone, Debug)]
 pub struct SpaceBetween<D: DivComponents> {
@@ -155,7 +156,7 @@ impl<D: DivComponents> Layable for SpaceBetween<D> {
 					};
 
 					let l_det = Details { x, y, aw, ah };
-					if DEBUG {
+					if PASS_EVENT_DEBUG {
 						println!(
 							"SpaceBetween handling mouse event; {l_det:?}, {:?}",
 							m_event.at()
