@@ -12,16 +12,17 @@ impl<L: Layable> Centered<L> {
 
 	fn l_det(&self, det: Details, scale: f32) -> Details {
 		let (l_w, l_h) = self.layable.size();
+		let (l_w, l_h) = ((l_w as f32 * scale), (l_h as f32 * scale));
 
-		let (base_x, base_y) = (
-			det.x + (det.aw as f32 / 2.0 - l_w as f32 / 2.0 * scale) as i32,
-			det.y + (det.ah as f32 / 2.0 - l_h as f32 / 2.0 * scale) as i32,
+		let (x_offset, y_offset) = (
+			(det.aw as f32 / 2.0 - l_w / 2.0) as i32,
+			(det.ah as f32 / 2.0 - l_h / 2.0) as i32,
 		);
 		let l_det = crate::Details {
-			x: base_x,
-			y: base_y,
-			aw: det.aw - base_x,
-			ah: det.ah - base_y,
+			x: det.x + x_offset,
+			y: det.y + y_offset,
+			aw: det.aw - x_offset,
+			ah: det.ah - y_offset,
 		};
 
 		l_det

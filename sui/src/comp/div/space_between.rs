@@ -2,6 +2,7 @@ use raylib::prelude::RaylibDraw;
 
 use crate::{comp::div::DivComponents, core::Event, Details, Layable};
 
+#[macro_export]
 macro_rules! single_size {
 	($self:expr) => {{
 		single_size!(? $self.horizontal)
@@ -83,7 +84,7 @@ impl<D: DivComponents> Layable for SpaceBetween<D> {
 	fn render(&self, d: &mut crate::Handle, det: Details, scale: f32) {
 		let gap = self.calculate_gap(det, scale);
 
-		let (mut x, mut y) = (0, 0);
+		let (mut x, mut y) = (det.x, det.y);
 		for comp in self.components.iter_components() {
 			let l_size = comp.size();
 
@@ -140,7 +141,7 @@ impl<D: DivComponents> Layable for SpaceBetween<D> {
 				}
 
 				let gap = self.calculate_gap(det, scale);
-				let (mut x, mut y) = (0, 0);
+				let (mut x, mut y) = (det.x, det.y);
 
 				let components = match self.components.iter_components_mut() {
 					Some(a) => a,

@@ -44,8 +44,8 @@ impl<L: Layable> FixedSize<L> {
 impl<L: Layable> Layable for FixedSize<L> {
 	fn size(&self) -> (i32, i32) {
 		match self.fit_opt {
-			FitOpt::Width(w) => (w, self.layable.size().0),
-			FitOpt::Height(h) => (self.layable.size().1, h),
+			FitOpt::Width(w) => (w, self.layable.size().1),
+			FitOpt::Height(h) => (self.layable.size().0, h),
 			FitOpt::Both(s) => s,
 		}
 	}
