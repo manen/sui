@@ -1,10 +1,12 @@
-use crate::{Assets, Error};
+use crate::{Asset, Assets, Result};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Empty;
 impl Assets for Empty {
-	async fn asset(&self, key: &str) -> crate::Result<crate::Asset, crate::Error> {
-		Err(Error::NoSuchAsset { tried: key.into() })
+	async fn asset(&self, key: &str) -> Result<Asset> {
+		Err(anyhow::anyhow!(
+			"attempted to retreive {key} from Empty asset_provider"
+		))
 	}
 }
 
@@ -18,14 +20,11 @@ impl<A: Assets> Log<A> {
 	}
 }
 impl<A: Assets> Assets for Log<A> {
-	fn asset(
-		&self,
-		key: &str,
-	) -> impl std::future::Future<Output = crate::Result<crate::Asset, Error>> + Send + Sync {
+	fn asset(&self, key: &str) -> impl std::future::Future<Output = Result<Asset>> + Send + Sync {
 		async fn asset<A>(
-			future: impl std::future::Future<Output = crate::Result<crate::Asset, Error>>,
+			future: impl std::future::Future<Output = Result<Asset>>,
 			key: &str,
-		) -> crate::Result<crate::Asset, crate::Error> {
+		) -> Result<Asset> {
 			let asset = future.await;
 
 			match asset {

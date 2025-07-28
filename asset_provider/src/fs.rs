@@ -1,4 +1,6 @@
-use crate::{Asset, Assets, Error, Result};
+use anyhow::anyhow;
+
+use crate::{Asset, Assets, Result};
 use std::{io::ErrorKind, path::PathBuf};
 
 #[derive(Clone, Debug)]
@@ -13,20 +15,18 @@ impl FsAssets {
 		if dir.exists() {
 			Ok(Self { dir })
 		} else {
-			Err(Error::NoAssetsDir {
-				tried: dir.to_string_lossy().into(),
-			})
+			Err(anyhow!(
+				"attempted to create an FsAssets in a directory that doesn't exist: {}",
+				dir.display()
+			))
 		}
 	}
 }
 impl Assets for FsAssets {
-	async fn asset(&self, key: &str) -> Result<crate::Asset, Error> {
-		match tokio::fs::read(self.dir.join(key)).await {
-			Ok(a) => Ok(Asset::new(a)),
-			Err(err) => match err.kind() {
-				ErrorKind::NotFound => Err(Error::NoSuchAsset { tried: key.into() }),
-				_ => Err(Error::IO(err)),
-			},
-		}
+	async fn asset(&self, key: &str) -> Result<crate::Asset> {
+		let path = self.dir.join(key);
+		let vec = tokio::fs::read(&path).await?;
+
+		Ok(Asset::new(vec))
 	}
 }
