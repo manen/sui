@@ -19,15 +19,20 @@ impl<'a, L: Layable> Layable for ImmutableWrap<'a, L> {
 	fn render(&self, d: &mut super::Handle, det: super::Details, scale: f32) {
 		self.0.render(d, det, scale);
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: super::Event,
+		events: impl Iterator<Item = super::Event>,
 		_det: super::Details,
 		_scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
 		println!(
-			"dropped {event:?} passed to ImmutableLayable; passing events requires mutability"
+			"dropped all events passed to ImmutableLayable; passing events requires mutability\nevents: ["
 		);
-		None
+		for event in events {
+			println!("  {event:?}");
+		}
+		println!("]");
+
+		std::iter::empty()
 	}
 }

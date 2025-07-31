@@ -95,13 +95,13 @@ impl<L: Layable> Layable for Margin<L> {
 	fn tick(&mut self) {
 		self.layable.tick();
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: crate::core::Event,
+		events: impl Iterator<Item = crate::core::Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
 		self.layable
-			.pass_event(event, self.l_det(det, scale), scale)
+			.pass_events(events, self.l_det(det, scale), scale)
 	}
 }

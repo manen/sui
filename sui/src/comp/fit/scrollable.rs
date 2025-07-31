@@ -266,105 +266,116 @@ impl<L: Layable> Layable for Scrollable<L> {
 	fn tick(&mut self) {
 		self.layable.tick();
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: crate::core::Event,
+		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
 		let (mul_x, mul_y) = self.mode.multipliers_f32();
 		let (l_w, l_h) = self.layable.size();
 
 		let view_det = self.l_det(det, scale, Some((l_w, l_h)));
 
+		let events = events.collect::<Vec<_>>();
 		// different events do different things:
 		// - pressing once starts the action
 		// - MouseHeld updates self.scroll_x or self.scroll_y
 		// - release stops the action
-		match event {
-			Event::MouseEvent(MouseEvent::Scroll { amount, .. }) => {
-				if self.mode == ScrollableMode::Horizontal {
-					self.state.scroll_x -= (amount * 10.0) as i32;
-				} else {
-					self.state.scroll_y -= (amount * 10.0) as i32;
+		for event in events.iter().copied() {
+			match event {
+				Event::MouseEvent(MouseEvent::Scroll { amount, .. }) => {
+					if self.mode == ScrollableMode::Horizontal {
+						self.state.scroll_x -= (amount * 10.0) as i32;
+					} else {
+						self.state.scroll_y -= (amount * 10.0) as i32;
+					}
+					self.clamp(det, None);
 				}
-				self.clamp(det, None);
-			}
-			Event::MouseEvent(MouseEvent::MouseClick {
-				x: mouse_x,
-				y: mouse_y,
-			}) => {
-				let mut state = self.state;
-				self.for_each_scrollbar(Some((l_w, l_h)), view_det, scale, |_, handle, bottom| {
-					let handle_det = crate::Details {
-						x: handle.0,
-						y: handle.1,
-						aw: handle.2,
-						ah: handle.3,
-					};
+				Event::MouseEvent(MouseEvent::MouseClick {
+					x: mouse_x,
+					y: mouse_y,
+				}) => {
+					let mut state = self.state;
+					self.for_each_scrollbar(
+						Some((l_w, l_h)),
+						view_det,
+						scale,
+						|_, handle, bottom| {
+							let handle_det = crate::Details {
+								x: handle.0,
+								y: handle.1,
+								aw: handle.2,
+								ah: handle.3,
+							};
 
-					if handle_det.is_inside(mouse_x, mouse_y) {
-						state.action = if bottom {
-							ScrollbarAction::ScrollingXFrom {
-								before: state.scroll_x,
-								drag_start_c: mouse_x,
+							if handle_det.is_inside(mouse_x, mouse_y) {
+								state.action = if bottom {
+									ScrollbarAction::ScrollingXFrom {
+										before: state.scroll_x,
+										drag_start_c: mouse_x,
+									}
+								} else {
+									ScrollbarAction::ScrollingYFrom {
+										before: state.scroll_y,
+										drag_start_c: mouse_y,
+									}
+								}
 							}
-						} else {
-							ScrollbarAction::ScrollingYFrom {
-								before: state.scroll_y,
-								drag_start_c: mouse_y,
-							}
+						},
+					);
+					self.state = state;
+				}
+				Event::MouseEvent(MouseEvent::MouseHeld {
+					x: mouse_x,
+					y: mouse_y,
+				}) => {
+					match self.state.action {
+						ScrollbarAction::ScrollingXFrom {
+							before,
+							drag_start_c,
+						} => {
+							let og = before
+								+ ((mouse_x - drag_start_c) as f32
+									/ (view_det.aw as f32 - SCROLLBAR_LENGTH * scale)
+									* (l_w - view_det.aw) as f32) as i32;
+
+							// i know this is a little unreadable :(
+							// basically all this math is just the inverse of how we calculate where the scrollbar handle should be
+							// same for ScrollingFromY
+
+							self.state.scroll_x = og
+								.min(l_w - det.aw + (SCROLLBAR_WIDTH * scale * mul_x) as i32)
+								.max(0);
 						}
-					}
-				});
-				self.state = state;
-			}
-			Event::MouseEvent(MouseEvent::MouseHeld {
-				x: mouse_x,
-				y: mouse_y,
-			}) => {
-				match self.state.action {
-					ScrollbarAction::ScrollingXFrom {
-						before,
-						drag_start_c,
-					} => {
-						let og = before
-							+ ((mouse_x - drag_start_c) as f32
-								/ (view_det.aw as f32 - SCROLLBAR_LENGTH * scale)
-								* (l_w - view_det.aw) as f32) as i32;
+						ScrollbarAction::ScrollingYFrom {
+							before,
+							drag_start_c,
+						} => {
+							let og = before
+								+ ((mouse_y - drag_start_c) as f32
+									/ (view_det.ah as f32 - SCROLLBAR_LENGTH * scale)
+									* (l_h - view_det.ah) as f32) as i32;
 
-						// i know this is a little unreadable :(
-						// basically all this math is just the inverse of how we calculate where the scrollbar handle should be
-						// same for ScrollingFromY
-
-						self.state.scroll_x = og
-							.min(l_w - det.aw + (SCROLLBAR_WIDTH * scale * mul_x) as i32)
-							.max(0);
-					}
-					ScrollbarAction::ScrollingYFrom {
-						before,
-						drag_start_c,
-					} => {
-						let og = before
-							+ ((mouse_y - drag_start_c) as f32
-								/ (view_det.ah as f32 - SCROLLBAR_LENGTH * scale)
-								* (l_h - view_det.ah) as f32) as i32;
-
-						self.state.scroll_y = og
-							.min(l_h - det.ah + (SCROLLBAR_WIDTH * scale * mul_y) as i32)
-							.max(0);
-					}
-					_ => (), // no action has been started
-				};
+							self.state.scroll_y = og
+								.min(l_h - det.ah + (SCROLLBAR_WIDTH * scale * mul_y) as i32)
+								.max(0);
+						}
+						_ => (), // no action has been started
+					};
+				}
+				Event::MouseEvent(MouseEvent::MouseRelease { .. }) => {
+					// expects everything to be handled in Event::MouseHeld
+					self.state.action = ScrollbarAction::None;
+				}
+				_ => (),
 			}
-			Event::MouseEvent(MouseEvent::MouseRelease { .. }) => {
-				// expects everything to be handled in Event::MouseHeld
-				self.state.action = ScrollbarAction::None;
-			}
-			_ => (),
 		}
 
-		self.view_mut(scale).pass_event(event, view_det, scale)
+		let mut view = self.view_mut(scale);
+		view.pass_events(events.into_iter(), view_det, scale)
+			.collect::<Vec<_>>()
+			.into_iter()
 	}
 }
 
@@ -409,19 +420,21 @@ impl<L: Layable> Layable for View<L> {
 	fn tick(&mut self) {
 		self.layable.tick();
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: crate::core::Event,
+		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		let event = match event {
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		let event_f = |event| match event {
 			Event::KeyboardEvent(_, _) => event,
 			Event::MouseEvent(a) => Event::MouseEvent(
 				a.with_cursor_pos_transform(|(x, y)| (x + self.base_x, y + self.base_y)),
 			),
 		};
+
+		let events = events.map(event_f);
 		self.layable
-			.pass_event(event, self.l_det(det, scale), scale)
+			.pass_events(events, self.l_det(det, scale), scale)
 	}
 }

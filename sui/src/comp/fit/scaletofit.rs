@@ -1,4 +1,4 @@
-use crate::Layable;
+use crate::{core::Event, Layable};
 
 #[derive(Copy, Clone, Debug)]
 /// is the width or the height going to be fixed
@@ -48,14 +48,14 @@ impl<L: Layable> Layable for ScaleToFit<L> {
 	fn tick(&mut self) {
 		self.layable.tick();
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: crate::core::Event,
+		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
 		self.layable
-			.pass_event(event, det, scale * self.scale(None))
+			.pass_events(events, det, scale * self.scale(None))
 	}
 }
 

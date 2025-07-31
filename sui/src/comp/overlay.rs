@@ -1,4 +1,4 @@
-use crate::Layable;
+use crate::{core::Event, Layable};
 
 #[derive(Clone, Debug)]
 /// renders the two components in the same place, overlapping each other
@@ -30,16 +30,31 @@ impl<A: Layable, B: Layable> Layable for Overlay<A, B> {
 		self.foreground.tick();
 		self.background.tick();
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: crate::core::Event,
+		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		if let Some(ret) = self.foreground.pass_event(event, det, scale) {
-			Some(ret)
-		} else {
-			self.background.pass_event(event, det, scale)
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		let mut ret = Vec::with_capacity(events.size_hint().0);
+
+		for event in events {
+			if let Some(ret_event) = self
+				.foreground
+				.pass_events(std::iter::once(event), det, scale)
+				.next()
+			{
+				ret.push(ret_event);
+			} else {
+				if let Some(ret_event) = self
+					.background
+					.pass_events(std::iter::once(event), det, scale)
+					.next()
+				{
+					ret.push(ret_event);
+				}
+			}
 		}
+		ret.into_iter()
 	}
 }

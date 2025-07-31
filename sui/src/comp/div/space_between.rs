@@ -119,16 +119,16 @@ impl<D: DivComponents> Layable for SpaceBetween<D> {
 			.for_each(Layable::tick)
 	}
 
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: Event,
+		events: impl Iterator<Item = Event>,
 		det: Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		match event {
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		let event_f = move |event| match event {
 			Event::KeyboardEvent(_, _) => {
 				for comp in self.components.iter_components_mut().into_iter().flatten() {
-					let ret = comp.pass_event(event, det, scale);
+					let ret = comp.pass_events(std::iter::once(event), det, scale).next();
 					if let Some(ret) = ret {
 						return Some(ret);
 					}
@@ -164,7 +164,9 @@ impl<D: DivComponents> Layable for SpaceBetween<D> {
 						);
 					}
 					if l_det.is_inside_tuple(m_event.at()) {
-						return comp.pass_event(event, l_det, scale);
+						return comp
+							.pass_events(std::iter::once(event), l_det, scale)
+							.next();
 					}
 
 					if !self.horizontal {
@@ -175,6 +177,8 @@ impl<D: DivComponents> Layable for SpaceBetween<D> {
 				}
 				None
 			}
-		}
+		};
+
+		events.filter_map(event_f)
 	}
 }

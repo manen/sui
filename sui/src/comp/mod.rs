@@ -22,7 +22,7 @@ pub use debug::Debug;
 pub mod cast_events;
 pub use cast_events::CastEvents;
 
-use crate::Layable;
+use crate::{core::Event, Layable};
 
 #[derive(Debug, Clone)]
 /// this enum contains variants for every base layable (layables that don't have a generic type) \
@@ -77,19 +77,20 @@ impl<'a> Layable for Comp<'a> {
 			Self::Dynamic(dl) => dl.tick(),
 		}
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: crate::core::Event,
+		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		match self {
-			Self::Div(a) => a.pass_event(event, det, scale),
-			Self::Text(a) => a.pass_event(event, det, scale),
-			Self::Space(a) => a.pass_event(event, det, scale),
-			Self::Color(a) => a.pass_event(event, det, scale),
-			Self::Dynamic(dl) => dl.pass_event(event, det, scale),
-		}
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		let as_vec: Vec<_> = match self {
+			Self::Div(a) => a.pass_events(events, det, scale).collect(),
+			Self::Text(a) => a.pass_events(events, det, scale).collect(),
+			Self::Space(a) => a.pass_events(events, det, scale).collect(),
+			Self::Color(a) => a.pass_events(events, det, scale).collect(),
+			Self::Dynamic(dl) => dl.pass_events(events, det, scale).collect(),
+		};
+		as_vec.into_iter()
 	}
 }
 

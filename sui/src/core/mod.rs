@@ -22,13 +22,13 @@ pub trait Layable {
 	fn tick(&mut self) {}
 	/// this function is called by the parent of this component \
 	/// return events to be bubbled back \
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		_event: Event,
+		_events: impl Iterator<Item = Event>,
 		_det: Details,
 		_scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		None
+	) -> impl Iterator<Item = ReturnEvent> {
+		std::iter::empty()
 	}
 }
 impl<L: Layable> Layable for &mut L {
@@ -41,13 +41,13 @@ impl<L: Layable> Layable for &mut L {
 	fn tick(&mut self) {
 		L::tick(self)
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: Event,
+		event: impl Iterator<Item = Event>,
 		det: Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		L::pass_event(self, event, det, scale)
+	) -> impl Iterator<Item = ReturnEvent> {
+		L::pass_events(self, event, det, scale)
 	}
 }
 

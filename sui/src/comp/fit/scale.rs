@@ -23,13 +23,13 @@ impl<L: Layable> Layable for Scale<L> {
 	fn tick(&mut self) {
 		self.layable.tick();
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: Event,
+		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		let event = match event {
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		let map_event = |event| match event {
 			Event::MouseEvent(m) => Event::MouseEvent(m.with_cursor_pos_transform(|(x, y)| {
 				(
 					(x as f32 / self.scale) as i32,
@@ -38,6 +38,6 @@ impl<L: Layable> Layable for Scale<L> {
 			})),
 			_ => event,
 		};
-		self.layable.pass_event(event, det, scale)
+		self.layable.pass_events(events.map(map_event), det, scale)
 	}
 }

@@ -1,4 +1,7 @@
-use crate::{core::FeaturedReturn, Layable};
+use crate::{
+	core::{Event, FeaturedReturn},
+	Layable,
+};
 
 /// CastEvents casts compatible events into a type that can hold either of
 /// said compatible events
@@ -28,14 +31,14 @@ impl<E: FeaturedReturn, L: Layable> Layable for CastEvents<E, L> {
 	fn tick(&mut self) {
 		self.layable.tick();
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: crate::core::Event,
+		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
 		self.layable
-			.pass_event(event, det, scale)
+			.pass_events(events, det, scale)
 			.map(|event| E::cast_event(event))
 	}
 }

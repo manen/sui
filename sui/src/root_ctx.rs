@@ -111,23 +111,19 @@ impl<L: Layable> RootContext<L> {
 		});
 		let events_to_fire = events_to_fire.into_iter().chain(key_downs);
 
-		events_to_fire
+		self.layable
+			.pass_events(events_to_fire, self.det, self.scale)
 			.map(|event| {
-				self.layable
-					.pass_event(event, self.det, self.scale)
-					.map(|event| {
-						let cast = E::cast_event(event);
-						if cast.can_take::<E>() {
-							Ok(cast
-								.take()
-								.expect("can_take returned true but taking failed"))
-						} else {
-							Err(cast)
-						}
-					})
+				let cast = E::cast_event(event);
+				if cast.can_take::<E>() {
+					Ok(cast
+						.take()
+						.expect("can_take returned true but taking failed"))
+				} else {
+					Err(cast)
+				}
 			})
-			.filter_map(|a| a)
-			.collect::<Vec<_>>()
+			.collect()
 	}
 }
 

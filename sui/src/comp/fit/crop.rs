@@ -32,26 +32,29 @@ impl<L: Layable> Layable for Crop<L> {
 	fn tick(&mut self) {
 		self.layable.tick();
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: Event,
+		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		match event {
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		let filter_f = move |event| match event {
 			Event::MouseEvent(MouseEvent::MouseHeld { .. }) => {
 				// pass MouseHeld even if it's ouside just to have scrollbars working nicely
-				self.layable.pass_event(event, det, scale)
+				true
 			}
 			Event::MouseEvent(m_event) => {
 				let (mx, my) = m_event.at();
 				if det.is_inside(mx, my) {
-					self.layable.pass_event(event, det, scale)
+					true
 				} else {
-					None
+					false
 				}
 			}
-			_ => self.layable.pass_event(event, det, scale),
-		}
+			_ => true,
+		};
+
+		self.layable
+			.pass_events(events.filter(move |event| filter_f(*event)), det, scale)
 	}
 }

@@ -45,25 +45,28 @@ impl<'a> Layable for Stage<'a> {
 	fn tick(&mut self) {
 		self.comp.borrow_mut().tick();
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: sui::core::Event,
+		events: impl Iterator<Item = sui::core::Event>,
 		det: sui::Details,
 		scale: f32,
-	) -> Option<sui::core::ReturnEvent> {
-		let event = self.comp.borrow_mut().pass_event(event, det, scale);
-		match event {
-			Some(event) if event.can_take::<StageChange>() => {
+	) -> impl Iterator<Item = sui::core::ReturnEvent> {
+		let mut comp = self.comp.borrow_mut();
+		let ret = comp.pass_events(events, det, scale);
+
+		let mut ret_back = Vec::with_capacity(ret.size_hint().0);
+		for ret in ret {
+			if ret.can_take::<StageChange>() {
 				let mut change: StageChange =
-					event.take().expect("can_take said yes but couldn't take");
+					ret.take().expect("can_take said yes but couldn't take");
 
 				let mut comp = self.comp.borrow_mut();
 				std::mem::swap(comp.deref_mut(), &mut change.to); // <- this will swap the current stage and the requested stage, making it so the request
-				// and the old stage get dropped at the end of the scope
-
-				None
+			// and the old stage get dropped at the end of the scope
+			} else {
+				ret_back.push(ret);
 			}
-			a => a,
 		}
+		ret_back.into_iter()
 	}
 }

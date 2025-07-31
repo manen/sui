@@ -1,4 +1,4 @@
-use crate::{Details, Layable};
+use crate::{core::Event, Details, Layable};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Mode {
@@ -73,13 +73,13 @@ impl<L: Layable> Layable for AtEnd<L> {
 	fn tick(&mut self) {
 		self.layable.tick();
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: crate::core::Event,
+		events: impl Iterator<Item = Event>,
 		det: Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
 		self.layable
-			.pass_event(event, self.l_det(det, scale), scale)
+			.pass_events(events, self.l_det(det, scale), scale)
 	}
 }

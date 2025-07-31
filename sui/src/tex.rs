@@ -130,12 +130,4 @@ impl Layable for Texture {
 	fn render(&self, d: &mut crate::Handle, det: Details, scale: f32) {
 		self.render(d, det.mul_size(scale));
 	}
-	fn pass_event(
-		&mut self,
-		_: crate::core::Event,
-		_: Details,
-		_: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		None
-	}
 }

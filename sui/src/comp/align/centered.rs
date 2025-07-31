@@ -39,13 +39,13 @@ impl<L: Layable> Layable for Centered<L> {
 	fn tick(&mut self) {
 		self.layable.tick();
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: Event,
+		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
 		self.layable
-			.pass_event(event, self.l_det(det, scale), scale)
+			.pass_events(events, self.l_det(det, scale), scale)
 	}
 }

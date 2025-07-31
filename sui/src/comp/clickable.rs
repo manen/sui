@@ -58,34 +58,45 @@ impl<T: Clone, C: Layable, F: FnMut((i32, i32)) -> T> Layable for Clickable<C, F
 	fn tick(&mut self) {
 		self.comp.tick();
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: Event,
+		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		let mut respond = || match event {
-			Event::MouseEvent(MouseEvent::MouseClick { x, y }) => {
-				if det.is_inside(x, y) {
-					Some(Event::ret((self.gen_ret)((x, y))))
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		let f = move |event| {
+			let mut respond = || match event {
+				Event::MouseEvent(MouseEvent::MouseClick { x, y }) => {
+					if det.is_inside(x, y) {
+						Some(Event::ret((self.gen_ret)((x, y))))
+					} else {
+						None
+					}
+				}
+				_ => None,
+			};
+
+			if !self.fallback {
+				match respond() {
+					Some(a) => Some(a),
+					None => self
+						.comp
+						.pass_events(std::iter::once(event), det, scale)
+						.next(),
+				}
+			} else {
+				if let Some(comp_resp) = self
+					.comp
+					.pass_events(std::iter::once(event), det, scale)
+					.next()
+				{
+					Some(comp_resp)
 				} else {
-					None
+					respond()
 				}
 			}
-			_ => None,
 		};
 
-		if !self.fallback {
-			match respond() {
-				Some(a) => Some(a),
-				None => self.comp.pass_event(event, det, scale),
-			}
-		} else {
-			if let Some(comp_resp) = self.comp.pass_event(event, det, scale) {
-				Some(comp_resp)
-			} else {
-				respond()
-			}
-		}
+		events.filter_map(f)
 	}
 }

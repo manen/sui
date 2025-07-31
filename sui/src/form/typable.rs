@@ -78,26 +78,28 @@ impl Layable for Typable {
 			}
 		}
 	}
-	fn pass_event(
+	fn pass_events(
 		&mut self,
-		event: crate::core::Event,
+		event: impl Iterator<Item = Event>,
 		_det: crate::Details,
 		_scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		let self_uiq = self.store.with_borrow(|a| a.uid);
-		match event {
-			Event::KeyboardEvent(this_uiq, KeyboardEvent::CharPressed(key))
-				if this_uiq == self_uiq =>
-			{
-				self.store.with_mut_borrow(|data| match key {
-					BACKSPACE => {
-						data.text.pop();
-					}
-					_ => data.text.push(key),
-				});
-				Some(Event::ret(TypeEvent::Handled))
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		event.filter_map(|event| {
+			let self_uiq = self.store.with_borrow(|a| a.uid);
+			match event {
+				Event::KeyboardEvent(this_uiq, KeyboardEvent::CharPressed(key))
+					if this_uiq == self_uiq =>
+				{
+					self.store.with_mut_borrow(|data| match key {
+						BACKSPACE => {
+							data.text.pop();
+						}
+						_ => data.text.push(key),
+					});
+					Some(Event::ret(TypeEvent::Handled))
+				}
+				_ => None,
 			}
-			_ => None,
-		}
+		})
 	}
 }

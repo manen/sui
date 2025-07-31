@@ -12,8 +12,8 @@ pub struct DynamicLayable<'a> {
 	render: fn(*const u8, d: &mut crate::Handle, det: Details, scale: f32),
 
 	tick: fn(*mut u8),
-	pass_event:
-		fn(*mut u8, event: Event, det: Details, scale: f32) -> Option<crate::core::ReturnEvent>,
+	pass_events:
+		fn(*mut u8, events: Vec<Event>, det: Details, scale: f32) -> Vec<crate::core::ReturnEvent>,
 
 	drop: fn(*mut u8),
 	clone: Option<fn(*const u8, std::alloc::Layout) -> *mut u8>,
@@ -91,13 +91,19 @@ impl<'a> DynamicLayable<'a> {
 		fn tick<L: Layable>(ptr: *mut u8) {
 			L::tick(unsafe { &mut *(ptr as *mut L) });
 		}
-		fn pass_event<L: Layable>(
+		fn pass_events<L: Layable>(
 			ptr: *mut u8,
-			event: Event,
+			events: Vec<Event>,
 			det: Details,
 			scale: f32,
-		) -> Option<crate::core::ReturnEvent> {
-			L::pass_event(unsafe { &mut *(ptr as *mut L) }, event, det, scale)
+		) -> Vec<crate::core::ReturnEvent> {
+			L::pass_events(
+				unsafe { &mut *(ptr as *mut L) },
+				events.into_iter(),
+				det,
+				scale,
+			)
+			.collect()
 		}
 
 		fn drop<L: Layable>(ptr: *mut u8) {
@@ -113,7 +119,7 @@ impl<'a> DynamicLayable<'a> {
 			size: size::<L>,
 			render: render::<L>,
 			tick: tick::<L>,
-			pass_event: pass_event::<L>,
+			pass_events: pass_events::<L>,
 			drop: drop::<L>,
 			clone: None,
 			debug: None,
@@ -198,13 +204,17 @@ impl<'a> Layable for DynamicLayable<'a> {
 	fn tick(&mut self) {
 		(self.tick)(self.ptr)
 	}
-	fn pass_event(
+
+	/// pass_events works with vecs, so allocations unfortunately \
+	/// the more events there less efficiency loss this is, so while playing and pressing and holding many keys
+	/// this might actually be better than calling each event individually
+	fn pass_events(
 		&mut self,
-		event: Event,
+		events: impl Iterator<Item = Event>,
 		det: Details,
 		scale: f32,
-	) -> Option<crate::core::ReturnEvent> {
-		(self.pass_event)(self.ptr, event, det, scale)
+	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		(self.pass_events)(self.ptr, events.collect(), det, scale).into_iter()
 	}
 }
 // common trait impls
@@ -244,7 +254,7 @@ impl<'a> Clone for DynamicLayable<'a> {
 					size: self.size,
 					render: self.render,
 					tick: self.tick,
-					pass_event: self.pass_event,
+					pass_events: self.pass_events,
 					drop: self.drop,
 					clone: self.clone,
 					debug: self.debug,
@@ -268,13 +278,13 @@ mod dynamiclayable_tests {
 			(200, 200)
 		}
 		fn render(&self, _: &mut crate::Handle, _: Details, _: f32) {}
-		fn pass_event(
+		fn pass_events(
 			&mut self,
-			event: Event,
+			events: impl Iterator<Item = Event>,
 			_: Details,
 			_: f32,
-		) -> Option<crate::core::ReturnEvent> {
-			Some(Event::ret(event))
+		) -> impl Iterator<Item = crate::core::ReturnEvent> {
+			events.map(Event::ret)
 		}
 	}
 
@@ -302,14 +312,18 @@ mod dynamiclayable_tests {
 		test_pair(l, d);
 	}
 	fn test_pair<A: Layable, B: Layable>(mut a: A, mut b: B) {
-		let test_event =
-			Event::MouseEvent(crate::core::event::MouseEvent::MouseClick { x: 3, y: 4 });
+		let test_events = [Event::MouseEvent(
+			crate::core::event::MouseEvent::MouseClick { x: 3, y: 4 },
+		)]
+		.into_iter();
 
 		assert_eq!(a.size(), b.size());
 		assert_eq!(
-			a.pass_event(test_event, Default::default(), 1.0)
+			a.pass_events(test_events.clone(), Default::default(), 1.0)
+				.next()
 				.map(|ret| ret.take::<Event>()),
-			b.pass_event(test_event, Default::default(), 1.0)
+			b.pass_events(test_events, Default::default(), 1.0)
+				.next()
 				.map(|ret| ret.take())
 		);
 	}
@@ -344,13 +358,13 @@ mod dynamiclayable_tests {
 				(200, 200)
 			}
 			fn render(&self, _: &mut crate::Handle, _: Details, _: f32) {}
-			fn pass_event(
+			fn pass_events(
 				&mut self,
-				event: Event,
+				events: impl Iterator<Item = Event>,
 				_: Details,
 				_: f32,
-			) -> Option<crate::core::ReturnEvent> {
-				Some(Event::ret(event))
+			) -> impl Iterator<Item = crate::core::ReturnEvent> {
+				events.map(Event::ret)
 			}
 		}
 		impl Drop for Dummy {
@@ -388,13 +402,13 @@ mod dynamiclayable_tests {
 				(200, 200)
 			}
 			fn render(&self, _: &mut crate::Handle, _: Details, _: f32) {}
-			fn pass_event(
+			fn pass_events(
 				&mut self,
-				event: Event,
+				events: impl Iterator<Item = Event>,
 				_: Details,
 				_: f32,
-			) -> Option<crate::core::ReturnEvent> {
-				Some(Event::ret(event))
+			) -> impl Iterator<Item = crate::core::ReturnEvent> {
+				events.map(Event::ret)
 			}
 		}
 
