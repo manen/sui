@@ -1,0 +1,9 @@
+[package]
+name = "stage_manager_tokio"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sui.workspace = true
+stage_manager.workspace = true
+tokio = { workspace = true, features = ["sync"] }

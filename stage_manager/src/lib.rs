@@ -49,7 +49,10 @@ impl<'a> Layable for Stage<'a> {
 	}
 
 	fn tick(&mut self) {
-		self.comp.borrow_mut().tick();
+		let mut comp = self.comp.borrow_mut();
+
+		comp.tick();
+		// comp.pass_events(std::iter::empty(), Default::default(), 1.0);
 	}
 	fn pass_events(
 		&mut self,
