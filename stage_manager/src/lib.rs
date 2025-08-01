@@ -1,6 +1,6 @@
 use std::{cell::RefCell, fmt::Debug, ops::DerefMut, rc::Rc};
 
-use sui::{DynamicLayable, Layable};
+use sui::{DynamicLayable, Layable, core::ReturnEvent};
 
 /// a command to have the stage manager change the stage to the dynamic layable within
 #[derive(Clone, Debug)]
@@ -21,6 +21,12 @@ impl<'a> StageChange<'a> {
 			requires_ticking: false,
 		}
 	}
+	pub fn from_dyn_ticking(dyn_layable: DynamicLayable<'a>) -> Self {
+		Self {
+			to: dyn_layable,
+			requires_ticking: true,
+		}
+	}
 }
 
 #[derive(Clone, Debug)]
@@ -29,6 +35,7 @@ impl<'a> StageChange<'a> {
 /// and any event inside can request a stage change using [StageChange]
 pub struct Stage<'a> {
 	comp: Rc<RefCell<DynamicLayable<'a>>>,
+	ticking: bool,
 }
 impl<'a> Stage<'a> {
 	pub fn new<L: Layable + Debug + Clone + 'a>(base_comp: L) -> Self {
@@ -37,7 +44,28 @@ impl<'a> Stage<'a> {
 	pub fn from_dyn_layable(dyn_layable: DynamicLayable<'a>) -> Self {
 		Self {
 			comp: Rc::new(RefCell::new(dyn_layable)),
+			ticking: false,
 		}
+	}
+
+	/// if u have self.comp already borrowed then you're crashing
+	fn handle_rets(&mut self, ret: Vec<ReturnEvent>) -> Vec<ReturnEvent> {
+		let mut ret_back = Vec::with_capacity(ret.len());
+		for ret in ret {
+			if ret.can_take::<StageChange>() {
+				let mut change: StageChange =
+					ret.take().expect("can_take said yes but couldn't take");
+
+				let mut comp = self.comp.borrow_mut();
+				std::mem::swap(comp.deref_mut(), &mut change.to); // <- this will swap the current stage and the requested stage, making it so the request
+				// and the old stage get dropped at the end of the scope
+
+				self.ticking = change.requires_ticking;
+			} else {
+				ret_back.push(ret);
+			}
+		}
+		ret_back
 	}
 }
 impl<'a> Layable for Stage<'a> {
@@ -49,10 +77,17 @@ impl<'a> Layable for Stage<'a> {
 	}
 
 	fn tick(&mut self) {
-		let mut comp = self.comp.borrow_mut();
+		self.comp.borrow_mut().tick();
 
-		comp.tick();
-		// comp.pass_events(std::iter::empty(), Default::default(), 1.0);
+		if self.ticking {
+			let ret = self
+				.comp
+				.borrow_mut()
+				.pass_events(std::iter::empty(), Default::default(), 1.0)
+				.collect::<Vec<_>>();
+
+			self.handle_rets(ret);
+		}
 	}
 	fn pass_events(
 		&mut self,
@@ -60,21 +95,12 @@ impl<'a> Layable for Stage<'a> {
 		det: sui::Details,
 		scale: f32,
 	) -> impl Iterator<Item = sui::core::ReturnEvent> {
-		let mut comp = self.comp.borrow_mut();
-		let ret = comp.pass_events(events, det, scale).collect::<Vec<_>>(); // too many allocs this hurt to write
+		let ret = self
+			.comp
+			.borrow_mut()
+			.pass_events(events, det, scale)
+			.collect::<Vec<_>>(); // too many allocs this hurt to write
 
-		let mut ret_back = Vec::with_capacity(ret.len());
-		for ret in ret {
-			if ret.can_take::<StageChange>() {
-				let mut change: StageChange =
-					ret.take().expect("can_take said yes but couldn't take");
-
-				std::mem::swap(comp.deref_mut(), &mut change.to); // <- this will swap the current stage and the requested stage, making it so the request
-			// and the old stage get dropped at the end of the scope
-			} else {
-				ret_back.push(ret);
-			}
-		}
-		ret_back.into_iter()
+		self.handle_rets(ret).into_iter()
 	}
 }

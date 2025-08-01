@@ -49,6 +49,11 @@ impl<T: Send + 'static> Loading<T> {
 		}
 	}
 }
+impl<T: Send + 'static + Debug> Loading<T> {
+	pub fn stage_change(self) -> StageChange<'static> {
+		StageChange::from_dyn_ticking(DynamicLayable::new_only_debug(self))
+	}
+}
 
 impl<T: Send> Layable for Loading<T> {
 	fn size(&self) -> (i32, i32) {
