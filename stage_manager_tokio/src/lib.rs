@@ -6,7 +6,10 @@ use tokio::{
 	task::JoinHandle,
 };
 
-// TODO write documentation
+/// Loading is an accessory Layable that lets you execute async code in the background while rendering and ticking
+/// a loading screen. when the background process (texture loading, file reading, file picking, etc) is finished, it'll send any
+/// type `T` to the post_process function, which has to turn `T` into a Layable for the Stage to change to, synchronously. \
+/// requires a tokio runtime to be running globally
 #[derive(Debug)]
 pub struct Loading<T: Send> {
 	loading_screen: DynamicLayable<'static>,
@@ -63,6 +66,9 @@ impl<T: Send> Layable for Loading<T> {
 		self.loading_screen.render(d, det, scale);
 	}
 
+	fn tick(&mut self) {
+		self.loading_screen.tick();
+	}
 	fn pass_events(
 		&mut self,
 		events: impl Iterator<Item = sui::core::Event>,
