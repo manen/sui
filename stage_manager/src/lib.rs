@@ -15,6 +15,12 @@ impl<'a> StageChange<'a> {
 			requires_ticking: false,
 		}
 	}
+	pub fn from_dyn(dyn_layable: DynamicLayable<'a>) -> Self {
+		Self {
+			to: dyn_layable,
+			requires_ticking: false,
+		}
+	}
 }
 
 #[derive(Clone, Debug)]
@@ -52,15 +58,14 @@ impl<'a> Layable for Stage<'a> {
 		scale: f32,
 	) -> impl Iterator<Item = sui::core::ReturnEvent> {
 		let mut comp = self.comp.borrow_mut();
-		let ret = comp.pass_events(events, det, scale);
+		let ret = comp.pass_events(events, det, scale).collect::<Vec<_>>(); // too many allocs this hurt to write
 
-		let mut ret_back = Vec::with_capacity(ret.size_hint().0);
+		let mut ret_back = Vec::with_capacity(ret.len());
 		for ret in ret {
 			if ret.can_take::<StageChange>() {
 				let mut change: StageChange =
 					ret.take().expect("can_take said yes but couldn't take");
 
-				let mut comp = self.comp.borrow_mut();
 				std::mem::swap(comp.deref_mut(), &mut change.to); // <- this will swap the current stage and the requested stage, making it so the request
 			// and the old stage get dropped at the end of the scope
 			} else {
