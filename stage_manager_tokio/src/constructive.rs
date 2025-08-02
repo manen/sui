@@ -14,6 +14,9 @@ pub enum ConstructFunction<T, P> {
 	NeedsSuiHandle(fn(&mut T, P, &mut sui::Handle) -> bool),
 }
 
+/// A [`loader`](crate::Loader) variation that can send multiple, smaller packets of data to the syncland (P),
+/// with a function to put that all into a collective storage (T), and the same post_process function the basic
+/// loader has. has many possible uses but maybe most useful for texture loading
 pub struct ConstructiveLoader<T, P: Send + 'static, PostProcess: Fn(T) -> DynamicLayable<'static>> {
 	loading_screen: DynamicLayable<'static>,
 
