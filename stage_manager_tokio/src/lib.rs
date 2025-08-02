@@ -6,19 +6,22 @@ use tokio::{
 	task::JoinHandle,
 };
 
-/// Loading is an accessory Layable that lets you execute async code in the background while rendering and ticking
+mod constructive;
+pub use constructive::{ConstructFunction, ConstructiveLoader};
+
+/// Loader is an accessory Layable that lets you execute async code in the background while rendering and ticking
 /// a loading screen. when the background process (texture loading, file reading, file picking, etc) is finished, it'll send any
 /// type `T` to the post_process function, which has to turn `T` into a Layable for the Stage to change to, synchronously. \
 /// requires a tokio runtime to be running globally
 #[derive(Debug)]
-pub struct Loading<T: Send> {
+pub struct Loader<T: Send> {
 	loading_screen: DynamicLayable<'static>,
 
 	handle: JoinHandle<()>,
 	rx: Receiver<T>,
 	post_process: fn(T) -> sui::DynamicLayable<'static>,
 }
-impl<T: Send + 'static> Loading<T> {
+impl<T: Send + 'static> Loader<T> {
 	pub fn new<L: Layable + Debug + Clone + 'static, F: Future<Output = T> + Send + 'static>(
 		loading_screen: L,
 		future: F,
@@ -52,13 +55,13 @@ impl<T: Send + 'static> Loading<T> {
 		}
 	}
 }
-impl<T: Send + 'static + Debug> Loading<T> {
+impl<T: Send + 'static + Debug> Loader<T> {
 	pub fn stage_change(self) -> StageChange<'static> {
 		StageChange::from_dyn_ticking(DynamicLayable::new_only_debug(self))
 	}
 }
 
-impl<T: Send> Layable for Loading<T> {
+impl<T: Send> Layable for Loader<T> {
 	fn size(&self) -> (i32, i32) {
 		self.loading_screen.size()
 	}

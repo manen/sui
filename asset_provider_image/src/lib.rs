@@ -2,10 +2,7 @@ pub use image;
 
 use asset_provider::Assets;
 use image::DynamicImage;
-use sui::{
-	raylib::{RaylibThread, texture::Image},
-	tex::Texture,
-};
+use sui::{raylib::texture::Image, tex::Texture};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -38,10 +35,10 @@ impl<A: Assets + Sync> AssetsExt for A {
 }
 
 pub trait ImageExt {
-	fn texture(&self, d: &mut sui::Handle, thread: &RaylibThread) -> Result<Texture>;
+	fn texture(&self, d: &mut sui::Handle) -> Result<Texture>;
 }
 impl ImageExt for DynamicImage {
-	fn texture(&self, d: &mut sui::Handle, thread: &RaylibThread) -> Result<Texture> {
+	fn texture(&self, d: &mut sui::Handle) -> Result<Texture> {
 		let rgba = self.to_rgba8();
 		let (w, h) = rgba.dimensions();
 
@@ -57,6 +54,8 @@ impl ImageExt for DynamicImage {
 			})
 		};
 		std::mem::forget(pixels); // <- pixels is managed by image now
+
+		let (d, thread) = d.to_parts_mut();
 
 		let texture = d.load_texture_from_image(thread, &image)?;
 		let texture = Texture::new_from_raylib(texture);

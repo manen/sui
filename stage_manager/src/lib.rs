@@ -27,6 +27,10 @@ impl<'a> StageChange<'a> {
 			requires_ticking: true,
 		}
 	}
+
+	pub fn take(self) -> DynamicLayable<'a> {
+		self.to
+	}
 }
 
 #[derive(Clone, Debug)]

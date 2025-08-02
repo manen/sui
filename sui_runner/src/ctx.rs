@@ -68,7 +68,7 @@ impl<L: Layable> Context<L> {
 		let mut d = self.rl.begin_drawing(&self.thread);
 		d.clear_background(Color::BLACK);
 
-		let mut d = sui::Handle::new(d, focus);
+		let mut d = sui::Handle::new(d, &self.thread, focus);
 
 		ctx.render(&mut d);
 	}
