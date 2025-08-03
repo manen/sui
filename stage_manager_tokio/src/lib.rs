@@ -1,6 +1,6 @@
 use stage_manager::StageChange;
 use std::fmt::Debug;
-use sui::{DynamicLayable, Layable, core::ReturnEvent};
+use sui::{DynamicLayable, Layable, LayableExt, core::ReturnEvent};
 use tokio::{
 	sync::mpsc::{Receiver, error::TryRecvError},
 	task::JoinHandle,
@@ -20,21 +20,37 @@ pub struct Loader<T: Send> {
 	#[allow(unused)]
 	handle: JoinHandle<()>,
 	rx: Receiver<T>,
-	post_process: fn(T) -> sui::DynamicLayable<'static>,
+	post_process: fn(T) -> StageChange<'static>,
 }
 impl<T: Send + 'static> Loader<T> {
 	pub fn new<L: Layable + Debug + Clone + 'static, F: Future<Output = T> + Send + 'static>(
 		loading_screen: L,
 		future: F,
-		post_process: fn(T) -> sui::DynamicLayable<'static>,
+		post_process: fn(T) -> StageChange<'static>,
 	) -> Self {
 		Self::from_dyn(DynamicLayable::new(loading_screen), future, post_process)
+	}
+	/// creates a new loader and wraps it into a StageChange
+	pub fn new_overlay<
+		L: Layable + Debug + Clone + 'static,
+		F: Future<Output = T> + Send + 'static,
+	>(
+		overlay: L,
+		future: F,
+		post_process: fn(T) -> StageChange<'static>,
+	) -> StageChange<'static> {
+		StageChange::swapper(move |old_stage| {
+			let loading_screen = old_stage.overlay(overlay);
+			let loader = Self::new(loading_screen, future, post_process);
+
+			sui::DynamicLayable::new_notraits(loader)
+		})
 	}
 
 	pub fn from_dyn<F: Future<Output = T> + Send + 'static>(
 		loading_screen: DynamicLayable<'static>,
 		future: F,
-		post_process: fn(T) -> sui::DynamicLayable<'static>,
+		post_process: fn(T) -> StageChange<'static>,
 	) -> Self {
 		let (tx, rx) = tokio::sync::mpsc::channel(1);
 
@@ -82,7 +98,7 @@ impl<T: Send> Layable for Loader<T> {
 		let a = match self.rx.try_recv() {
 			Ok(item) => {
 				let processed = (self.post_process)(item);
-				Some(ReturnEvent::new(StageChange::Simple(processed)))
+				Some(ReturnEvent::new(processed))
 			}
 			Err(TryRecvError::Empty) => None,
 			Err(TryRecvError::Disconnected) => {

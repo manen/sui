@@ -1,7 +1,7 @@
 use std::{cell::RefCell, fmt::Debug, ops::DerefMut, rc::Rc};
 
 use stage_manager::StageChange;
-use sui::{DynamicLayable, Layable, core::ReturnEvent};
+use sui::{DynamicLayable, Layable, LayableExt, core::ReturnEvent};
 use tokio::{
 	sync::mpsc::{Receiver, error::TryRecvError},
 	task::JoinHandle,
@@ -17,7 +17,7 @@ pub enum ConstructFunction<T, P> {
 /// A [`loader`](crate::Loader) variation that can send multiple, smaller packets of data to the syncland (P),
 /// with a function to put that all into a collective storage (T), and the same post_process function the basic
 /// loader has. has many possible uses but maybe most useful for texture loading
-pub struct ConstructiveLoader<T, P: Send + 'static, PostProcess: Fn(T) -> DynamicLayable<'static>> {
+pub struct ConstructiveLoader<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> {
 	loading_screen: DynamicLayable<'static>,
 
 	handle: JoinHandle<()>,
@@ -31,7 +31,7 @@ pub struct ConstructiveLoader<T, P: Send + 'static, PostProcess: Fn(T) -> Dynami
 	post_process: PostProcess,
 }
 
-impl<T: Debug, P: Send + 'static + Debug, PostProcess: Fn(T) -> DynamicLayable<'static>> Debug
+impl<T: Debug, P: Send + 'static + Debug, PostProcess: Fn(T) -> StageChange<'static>> Debug
 	for ConstructiveLoader<T, P, PostProcess>
 {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -46,7 +46,7 @@ impl<T: Debug, P: Send + 'static + Debug, PostProcess: Fn(T) -> DynamicLayable<'
 	}
 }
 
-impl<T, P: Send + 'static, PostProcess: Fn(T) -> DynamicLayable<'static>>
+impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>>
 	ConstructiveLoader<T, P, PostProcess>
 {
 	pub fn new_explicit<F: Future<Output = ()> + Send + 'static>(
@@ -77,9 +77,29 @@ impl<T, P: Send + 'static, PostProcess: Fn(T) -> DynamicLayable<'static>>
 			finished,
 		}
 	}
+
+	/// creates a new loader and wraps it into a StageChange
+	pub fn new_overlay<F: Future<Output = ()> + Send + 'static>(
+		overlay: impl Layable + Debug + Clone + 'static,
+		f: impl FnOnce(tokio::sync::mpsc::Sender<P>) -> F + 'static,
+		base_t: T,
+		construct: ConstructFunction<T, P>,
+		post_process: PostProcess,
+	) -> StageChange<'static>
+	where
+		T: 'static,
+		PostProcess: 'static,
+	{
+		StageChange::swapper(move |old_stage| {
+			let loading_screen = old_stage.overlay(overlay);
+			let loader = Self::new_explicit(loading_screen, f, base_t, construct, post_process);
+
+			sui::DynamicLayable::new_notraits(loader)
+		})
+	}
 }
 
-impl<T, P: Send + 'static, PostProcess: Fn(T) -> DynamicLayable<'static>> Layable
+impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> Layable
 	for ConstructiveLoader<T, P, PostProcess>
 {
 	fn size(&self) -> (i32, i32) {
@@ -155,7 +175,7 @@ impl<T, P: Send + 'static, PostProcess: Fn(T) -> DynamicLayable<'static>> Layabl
 				.expect("ConstructiveLoader finished, but self.t has already been taken");
 			let l = (self.post_process)(t);
 
-			Some(ReturnEvent::new(StageChange::Simple(l)))
+			Some(ReturnEvent::new(l))
 		} else {
 			None
 		};
