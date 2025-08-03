@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 
-use stage_manager::StageChange;
 use sui::{DynamicLayable, Layable};
 use tokio::sync::mpsc::{Receiver, Sender, error::TryRecvError};
 
@@ -8,19 +7,53 @@ use tokio::sync::mpsc::{Receiver, Sender, error::TryRecvError};
 /// this is the only event type that'll get relayed to the remote controller
 pub struct RemoteEvent<T>(pub T);
 
+/// a carbon copy of stage_manager::StageChange that can be sent across threads
+pub enum RemoteStageChange {
+	Simple(DynamicLayable<'static>),
+	Swapper(Box<dyn FnOnce(DynamicLayable<'static>) -> DynamicLayable<'static> + Send>),
+}
+impl Debug for RemoteStageChange {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Self::Simple(res) => f.debug_tuple("StageChange::Simple").field(&res).finish(),
+			Self::Swapper(_) => f
+				.debug_tuple("StageChange::Swapper")
+				.field(&"swap_fn")
+				.finish(),
+		}
+	}
+}
+
+impl RemoteStageChange {
+	pub fn simple<L: Layable + Debug + Clone + 'static>(layable: L) -> Self {
+		Self::Simple(DynamicLayable::new(layable))
+	}
+	pub fn simple_only_debug<L: Layable + Debug + 'static>(layable: L) -> Self {
+		Self::Simple(DynamicLayable::new_only_debug(layable))
+	}
+
+	pub fn swapper<
+		F: FnOnce(DynamicLayable<'static>) -> DynamicLayable<'static> + Send + 'static,
+	>(
+		swap_fn: F,
+	) -> Self {
+		Self::Swapper(Box::new(swap_fn))
+	}
+}
+
 #[derive(Debug)]
 pub struct RemoteStage<T: Send + Debug> {
 	current: DynamicLayable<'static>,
 
 	handle: tokio::task::JoinHandle<()>,
 
-	stage_rx: Receiver<StageChange<'static>>,
+	stage_rx: Receiver<RemoteStageChange>,
 	events_tx: Sender<T>,
 }
 impl<T: Send + Debug> RemoteStage<T> {
 	pub fn new_explicit<F: Future<Output = ()> + Send + 'static>(
 		layable: impl Layable + Debug + 'static,
-		controller: impl FnOnce(Sender<StageChange<'static>>, Receiver<T>) -> F,
+		controller: impl FnOnce(Sender<RemoteStageChange>, Receiver<T>) -> F + Send,
 	) -> Self {
 		let layable = sui::custom_only_debug(layable);
 
@@ -40,15 +73,15 @@ impl<T: Send + Debug> RemoteStage<T> {
 
 	/// creates a new, remotely controlled stage
 	pub fn new<F: Future<Output = ()> + Send + 'static>(
-		controller: impl FnOnce(Sender<StageChange<'static>>, Receiver<T>) -> F,
+		controller: impl FnOnce(Sender<RemoteStageChange>, Receiver<T>) -> F + Send,
 	) -> Self {
 		Self::new_explicit(sui::comp::Space::new(10, 10), controller)
 	}
 
 	fn try_recv(&mut self) {
 		match self.stage_rx.try_recv() {
-			Ok(StageChange::Simple(new_stage)) => self.current = new_stage,
-			Ok(StageChange::Swapper(swap_fn)) => {
+			Ok(RemoteStageChange::Simple(new_stage)) => self.current = new_stage,
+			Ok(RemoteStageChange::Swapper(swap_fn)) => {
 				let current_stage = std::mem::replace(
 					&mut self.current,
 					sui::custom(sui::comp::Space::new(10, 10)), // ! self.current replaced with a dummy stage for this block

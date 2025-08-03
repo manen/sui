@@ -267,6 +267,8 @@ impl<'a> Clone for DynamicLayable<'a> {
 	}
 }
 
+unsafe impl Send for DynamicLayable<'static> {}
+
 #[cfg(test)]
 mod dynamiclayable_tests {
 	use super::*;
