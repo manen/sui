@@ -59,7 +59,7 @@ impl<T: Send + 'static> Loader<T> {
 			match tx.send(output).await {
 				Ok(a) => a,
 				Err(err) => panic!(
-					"stage_manager_tokio::Loading: async function finished, couldn't send result into channel\n{err}",
+					"stage_manager_loaders::Loader: async function finished, couldn't send result into channel\n{err}",
 				),
 			};
 		});
@@ -108,7 +108,7 @@ impl<T: Send> Layable for Loader<T> {
 			Err(TryRecvError::Empty) => None,
 			Err(TryRecvError::Disconnected) => {
 				panic!(
-					"stage_manager_tokio::Loading's receiver disconnected before yielding a result"
+					"stage_manager_loaders::Loader's receiver disconnected before yielding a result"
 				)
 			}
 		};

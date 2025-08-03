@@ -1,5 +1,5 @@
 [package]
-name = "stage_manager_tokio"
+name = "stage_manager_loaders"
 version = "0.1.0"
 edition = "2024"
 

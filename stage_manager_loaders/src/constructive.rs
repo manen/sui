@@ -132,7 +132,7 @@ impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> Layable
 					Err(TryRecvError::Empty) => false,
 					Err(TryRecvError::Disconnected) => {
 						panic!(
-							"stage_manager_tokio::ConstructiveLoader's receiver disconnected while waiting for results to be yield\nyour construct function probably isn't set up to return true when it's finished\n(ConstructFunction::NeedsSuiHandle)"
+							"stage_manager_loaders::ConstructiveLoader's receiver disconnected while waiting for results to be yield\nyour construct function probably isn't set up to return true when it's finished\n(ConstructFunction::NeedsSuiHandle)"
 						)
 					}
 				};
@@ -169,7 +169,7 @@ impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> Layable
 				Err(TryRecvError::Empty) => false,
 				Err(TryRecvError::Disconnected) => {
 					panic!(
-						"stage_manager_tokio::ConstructiveLoader's receiver disconnected while waiting for results to be yield\nyour construct function probably isn't set up to return true when it's finished"
+						"stage_manager_loaders::ConstructiveLoader's receiver disconnected while waiting for results to be yield\nyour construct function probably isn't set up to return true when it's finished"
 					)
 				}
 			},
