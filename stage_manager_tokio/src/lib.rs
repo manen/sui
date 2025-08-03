@@ -77,6 +77,11 @@ impl<T: Send + 'static + Debug> Loader<T> {
 		StageChange::simple_only_debug(self)
 	}
 }
+impl<T: Send> Drop for Loader<T> {
+	fn drop(&mut self) {
+		self.handle.abort();
+	}
+}
 
 impl<T: Send> Layable for Loader<T> {
 	fn size(&self) -> (i32, i32) {

@@ -99,6 +99,14 @@ impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>>
 	}
 }
 
+impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> Drop
+	for ConstructiveLoader<T, P, PostProcess>
+{
+	fn drop(&mut self) {
+		self.handle.abort();
+	}
+}
+
 impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> Layable
 	for ConstructiveLoader<T, P, PostProcess>
 {
