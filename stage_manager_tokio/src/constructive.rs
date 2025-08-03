@@ -18,7 +18,7 @@ pub enum ConstructFunction<T, P> {
 /// with a function to put that all into a collective storage (T), and the same post_process function the basic
 /// loader has. has many possible uses but maybe most useful for texture loading
 pub struct ConstructiveLoader<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> {
-	loading_screen: DynamicLayable<'static>,
+	pub loading_screen: DynamicLayable<'static>,
 
 	handle: JoinHandle<()>,
 	rx: Rc<RefCell<Receiver<P>>>,
