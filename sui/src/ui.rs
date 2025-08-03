@@ -15,6 +15,9 @@ pub use crate::root_ctx::*;
 pub fn custom<'a, L: Layable + std::fmt::Debug + Clone + 'a>(layable: L) -> DynamicLayable<'a> {
 	crate::DynamicLayable::new(layable)
 }
+pub fn custom_only_debug<'a, L: Layable + std::fmt::Debug + 'a>(layable: L) -> DynamicLayable<'a> {
+	crate::DynamicLayable::new_only_debug(layable)
+}
 
 pub fn div<D: comp::div::DivComponents>(components: D) -> comp::Div<D> {
 	comp::Div::new(false, components)
@@ -114,7 +117,7 @@ pub trait LayableExt: Layable + Sized {
 	}
 
 	/// see [comp::Clickable]
-	fn clickable<T: Clone + 'static, F: FnMut((i32, i32)) -> T>(
+	fn clickable<T: 'static, F: FnMut((i32, i32)) -> T>(
 		self,
 		gen_ret: F,
 	) -> comp::Clickable<Self, F, T> {

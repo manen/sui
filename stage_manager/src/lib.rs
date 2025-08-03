@@ -2,34 +2,34 @@ use std::{cell::RefCell, fmt::Debug, ops::DerefMut, rc::Rc};
 
 use sui::{DynamicLayable, Layable, core::ReturnEvent};
 
-/// a command to have the stage manager change the stage to the dynamic layable within
-#[derive(Clone, Debug)]
-pub struct StageChange<'a> {
-	pub to: DynamicLayable<'a>,
-	pub requires_ticking: bool,
+pub enum StageChange<'a> {
+	Simple(DynamicLayable<'a>),
+	Swapper(Box<dyn FnOnce(DynamicLayable<'a>) -> DynamicLayable<'a>>),
 }
+impl<'a> Debug for StageChange<'a> {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Self::Simple(res) => f.debug_tuple("StageChange::Simple").field(&res).finish(),
+			Self::Swapper(_) => f
+				.debug_tuple("StageChange::Swapper")
+				.field(&"swap_fn")
+				.finish(),
+		}
+	}
+}
+
 impl<'a> StageChange<'a> {
-	pub fn new<L: Layable + Debug + Clone + 'a>(layable: L) -> Self {
-		Self {
-			to: DynamicLayable::new(layable),
-			requires_ticking: false,
-		}
+	pub fn simple<L: Layable + Debug + Clone + 'a>(layable: L) -> Self {
+		Self::Simple(DynamicLayable::new(layable))
 	}
-	pub fn from_dyn(dyn_layable: DynamicLayable<'a>) -> Self {
-		Self {
-			to: dyn_layable,
-			requires_ticking: false,
-		}
-	}
-	pub fn from_dyn_ticking(dyn_layable: DynamicLayable<'a>) -> Self {
-		Self {
-			to: dyn_layable,
-			requires_ticking: true,
-		}
+	pub fn simple_only_debug<L: Layable + Debug + 'a>(layable: L) -> Self {
+		Self::Simple(DynamicLayable::new_only_debug(layable))
 	}
 
-	pub fn take(self) -> DynamicLayable<'a> {
-		self.to
+	pub fn swapper<F: FnOnce(DynamicLayable<'a>) -> DynamicLayable<'a> + 'static>(
+		swap_fn: F,
+	) -> Self {
+		Self::Swapper(Box::new(swap_fn))
 	}
 }
 
@@ -37,18 +37,19 @@ impl<'a> StageChange<'a> {
 /// manages the stage \
 /// the point is that it can swap out what it's rendering dynamically at runtime,
 /// and any event inside can request a stage change using [StageChange]
-pub struct Stage<'a> {
-	comp: Rc<RefCell<DynamicLayable<'a>>>,
-	ticking: bool,
+pub struct Stage {
+	comp: Rc<RefCell<DynamicLayable<'static>>>,
 }
-impl<'a> Stage<'a> {
-	pub fn new<L: Layable + Debug + Clone + 'a>(base_comp: L) -> Self {
+impl Stage {
+	pub fn new<L: Layable + Debug + Clone + 'static>(base_comp: L) -> Self {
 		Self::from_dyn_layable(DynamicLayable::new(base_comp))
 	}
-	pub fn from_dyn_layable(dyn_layable: DynamicLayable<'a>) -> Self {
+	pub fn new_only_debug<L: Layable + Debug + 'static>(base_comp: L) -> Self {
+		Self::from_dyn_layable(DynamicLayable::new_only_debug(base_comp))
+	}
+	pub fn from_dyn_layable(dyn_layable: DynamicLayable<'static>) -> Self {
 		Self {
 			comp: Rc::new(RefCell::new(dyn_layable)),
-			ticking: false,
 		}
 	}
 
@@ -57,14 +58,29 @@ impl<'a> Stage<'a> {
 		let mut ret_back = Vec::with_capacity(ret.len());
 		for ret in ret {
 			if ret.can_take::<StageChange>() {
-				let mut change: StageChange =
-					ret.take().expect("can_take said yes but couldn't take");
+				let change: StageChange = ret.take().expect("can_take said yes but couldn't take");
 
-				let mut comp = self.comp.borrow_mut();
-				std::mem::swap(comp.deref_mut(), &mut change.to); // <- this will swap the current stage and the requested stage, making it so the request
-				// and the old stage get dropped at the end of the scope
+				match change {
+					StageChange::Simple(mut new_stage) => {
+						let mut comp = self.comp.borrow_mut();
+						std::mem::swap(comp.deref_mut(), &mut new_stage); // <- this will swap the current stage and the requested stage, making it so the request
+						// and the old stage get dropped at the end of the scope
+					}
+					StageChange::Swapper(swap_fn) => {
+						let mut comp = self.comp.borrow_mut();
 
-				self.ticking = change.requires_ticking;
+						#[allow(unused_unsafe)]
+						unsafe {
+							let taken_comp = std::mem::replace(
+								comp.deref_mut(),
+								DynamicLayable::new(sui::comp::Space::new(10, 10)),
+							); // ! <- self.comp replaced with a dummy layable for the remainder of the unsafe block!
+							let new_stage = swap_fn(taken_comp);
+
+							*comp = new_stage;
+						}
+					}
+				}
 			} else {
 				ret_back.push(ret);
 			}
@@ -72,7 +88,7 @@ impl<'a> Stage<'a> {
 		ret_back
 	}
 }
-impl<'a> Layable for Stage<'a> {
+impl Layable for Stage {
 	fn size(&self) -> (i32, i32) {
 		self.comp.borrow().size()
 	}
@@ -83,7 +99,7 @@ impl<'a> Layable for Stage<'a> {
 	fn tick(&mut self) {
 		self.comp.borrow_mut().tick();
 
-		if self.ticking {
+		if false {
 			let ret = self
 				.comp
 				.borrow_mut()

@@ -17,6 +17,7 @@ pub use constructive::{ConstructFunction, ConstructiveLoader};
 pub struct Loader<T: Send> {
 	loading_screen: DynamicLayable<'static>,
 
+	#[allow(unused)]
 	handle: JoinHandle<()>,
 	rx: Receiver<T>,
 	post_process: fn(T) -> sui::DynamicLayable<'static>,
@@ -57,7 +58,7 @@ impl<T: Send + 'static> Loader<T> {
 }
 impl<T: Send + 'static + Debug> Loader<T> {
 	pub fn stage_change(self) -> StageChange<'static> {
-		StageChange::from_dyn_ticking(DynamicLayable::new_only_debug(self))
+		StageChange::simple_only_debug(self)
 	}
 }
 
@@ -81,7 +82,7 @@ impl<T: Send> Layable for Loader<T> {
 		let a = match self.rx.try_recv() {
 			Ok(item) => {
 				let processed = (self.post_process)(item);
-				Some(ReturnEvent::new(StageChange::from_dyn(processed)))
+				Some(ReturnEvent::new(StageChange::Simple(processed)))
 			}
 			Err(TryRecvError::Empty) => None,
 			Err(TryRecvError::Disconnected) => {

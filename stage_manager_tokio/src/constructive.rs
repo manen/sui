@@ -155,7 +155,7 @@ impl<T, P: Send + 'static, PostProcess: Fn(T) -> DynamicLayable<'static>> Layabl
 				.expect("ConstructiveLoader finished, but self.t has already been taken");
 			let l = (self.post_process)(t);
 
-			Some(ReturnEvent::new(StageChange::from_dyn(l)))
+			Some(ReturnEvent::new(StageChange::Simple(l)))
 		} else {
 			None
 		};
