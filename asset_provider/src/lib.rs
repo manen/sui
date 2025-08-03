@@ -44,6 +44,12 @@ impl Asset {
 			}
 		}
 	}
+	pub fn as_slice(&self) -> &[u8] {
+		match &self.bin {
+			Cow::Borrowed(a) => a,
+			Cow::Owned(a) => a.as_ref(),
+		}
+	}
 	pub fn to_vec(self) -> Vec<u8> {
 		match self.bin {
 			Cow::Borrowed(b) => b.into(),
