@@ -1,6 +1,7 @@
 use std::{
 	borrow::Cow,
 	cell::RefCell,
+	cmp::Ordering,
 	hash::{DefaultHasher, Hash, Hasher},
 	ops::Range,
 	rc::Rc,
@@ -72,7 +73,7 @@ impl<'a> WrappedText<'a> {
 			{
 				wrap_data.lines.drain(..).for_each(std::mem::drop);
 
-				basic_wrapping_strategy(&self.text, self.size, &mut wrap_data.lines, det, scale);
+				precise_wrapping_strategy(&self.text, self.size, &mut wrap_data.lines, det, scale);
 			}
 
 			let (mut width, mut height) = (0, 0);
@@ -130,6 +131,8 @@ fn basic_wrapping_strategy(
 	//* caveats:
 	// - fix size per character
 	// - hardcoded scaling multiple
+	// - doesn't adjust to font size
+
 	let chars_per_line = det.aw as f32 / (size as f32 * scale) * 2.0;
 	let chars_per_line = chars_per_line.max(1.0) as usize;
 
@@ -141,5 +144,72 @@ fn basic_wrapping_strategy(
 		let rng = i..until;
 		lines.push(rng);
 		i = until;
+	}
+}
+
+/// expects lines to be empty already
+///
+/// accurately calculates available space for the characters, by incrementally
+/// caluclating the text's size with [measure_line] \
+/// much slower than basic_wrapping_strategy
+fn precise_wrapping_strategy(
+	text: &str,
+	size: i32,
+	lines: &mut Vec<Range<usize>>,
+	det: Details,
+	scale: f32,
+) {
+	//* caveats:
+	// - computationally expensive on det/scale change
+
+	let real_size = size as f32 * scale;
+	let real_size = real_size as i32;
+
+	let mut from = 0;
+	let mut to = 0;
+
+	loop {
+		if to > text.len() {
+			break;
+		}
+
+		let test_line = &text[from..to];
+		let (width, _) = measure_line(test_line, real_size);
+
+		match width.cmp(&det.aw) {
+			Ordering::Greater => {
+				match to - from {
+					0 => {
+						to += 1;
+						lines.push(from..to);
+						from = to;
+						to += 1;
+					}
+					1 => {
+						lines.push(from..to);
+						from = to;
+						to += 1;
+					}
+					_ => {
+						// we went too far
+						lines.push(from..(to - 1));
+						from = to - 1;
+						to = from + 1;
+					}
+				}
+			}
+			Ordering::Equal => {
+				lines.push(from..to);
+				from = to;
+				to += 1;
+			}
+			Ordering::Less => {
+				to += 1;
+			}
+		}
+
+		if to == text.len() {
+			lines.push(from..to)
+		}
 	}
 }
