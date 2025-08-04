@@ -72,10 +72,21 @@ impl<'a> WrappedText<'a> {
 			{
 				wrap_data.lines.drain(..).for_each(std::mem::drop);
 
-				let half = self.text.len() / 2;
+				//* caveats:
+				// - fix size per character
+				// - hardcoded scaling multiple
+				let chars_per_line = det.aw as f32 / (self.size as f32 * scale) * 2.0;
+				let chars_per_line = chars_per_line.max(1.0) as usize;
 
-				wrap_data.lines.push(0..half);
-				wrap_data.lines.push(half..self.text.len());
+				let mut i = 0;
+				while i < self.text.len() {
+					let until = i + chars_per_line;
+					let until = until.min(self.text.len());
+
+					let rng = i..until;
+					wrap_data.lines.push(rng);
+					i = until;
+				}
 			}
 
 			let (mut width, mut height) = (0, 0);
