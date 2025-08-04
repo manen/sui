@@ -72,21 +72,7 @@ impl<'a> WrappedText<'a> {
 			{
 				wrap_data.lines.drain(..).for_each(std::mem::drop);
 
-				//* caveats:
-				// - fix size per character
-				// - hardcoded scaling multiple
-				let chars_per_line = det.aw as f32 / (self.size as f32 * scale) * 2.0;
-				let chars_per_line = chars_per_line.max(1.0) as usize;
-
-				let mut i = 0;
-				while i < self.text.len() {
-					let until = i + chars_per_line;
-					let until = until.min(self.text.len());
-
-					let rng = i..until;
-					wrap_data.lines.push(rng);
-					i = until;
-				}
+				basic_wrapping_strategy(&self.text, self.size, &mut wrap_data.lines, det, scale);
 			}
 
 			let (mut width, mut height) = (0, 0);
@@ -130,5 +116,30 @@ impl<'a> Layable for WrappedText<'a> {
 			);
 			y += self.size;
 		}
+	}
+}
+
+/// expects lines to be empty already
+fn basic_wrapping_strategy(
+	text: &str,
+	size: i32,
+	lines: &mut Vec<Range<usize>>,
+	det: Details,
+	scale: f32,
+) {
+	//* caveats:
+	// - fix size per character
+	// - hardcoded scaling multiple
+	let chars_per_line = det.aw as f32 / (size as f32 * scale) * 2.0;
+	let chars_per_line = chars_per_line.max(1.0) as usize;
+
+	let mut i = 0;
+	while i < text.len() {
+		let until = i + chars_per_line;
+		let until = until.min(text.len());
+
+		let rng = i..until;
+		lines.push(rng);
+		i = until;
 	}
 }
