@@ -9,9 +9,8 @@ use std::{
 
 use raylib::{math::Vector2, prelude::RaylibDraw};
 
+use super::{measure_line, Font, DEFAULT_COLOR, SPACING};
 use crate::{Color, Details, Layable};
-
-use super::text::{measure_line, Font, DEFAULT_COLOR, SPACING};
 
 #[derive(Debug, Default)]
 pub struct WrapData {
@@ -31,6 +30,10 @@ impl WrapData {
 	}
 }
 
+/// the sibling of [`Text`](crate::comp::Text), with text wrapping enabled, meaning the text
+/// will always (at least try to) fit into the space provided. \
+///
+/// wrapping can be achieved by several strategies, all varying by usecase and performance.
 #[derive(Debug, Clone)]
 pub struct WrappedText<'a> {
 	pub text: Cow<'a, str>,
@@ -73,7 +76,7 @@ impl<'a> WrappedText<'a> {
 			{
 				wrap_data.lines.drain(..).for_each(std::mem::drop);
 
-				precise_wrapping_strategy(&self.text, self.size, &mut wrap_data.lines, det, scale);
+				word_wrapping_strategy(&self.text, self.size, &mut wrap_data.lines, det, scale);
 			}
 
 			let (mut width, mut height) = (0, 0);
@@ -146,6 +149,8 @@ fn basic_wrapping_strategy(
 		i = until;
 	}
 }
+
+use super::word_wrap::word_wrapping_strategy;
 
 /// expects lines to be empty already
 ///

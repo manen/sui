@@ -1,8 +1,13 @@
+use crate::Layable;
+use raylib::{color::Color, math::Vector2, prelude::RaylibDraw, text::WeakFont};
 use std::borrow::Cow;
 
-use raylib::{color::Color, math::Vector2, prelude::RaylibDraw, text::WeakFont};
+pub mod wrapped_text;
+pub use wrapped_text::WrappedText;
 
-use crate::Layable;
+pub(self) mod word_wrap;
+
+// --
 
 pub const BOUNDS_DEBUG: bool = false;
 pub const SPACING: f32 = 1.0; // idk idc
