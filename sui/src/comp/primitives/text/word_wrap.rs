@@ -16,26 +16,28 @@ pub fn word_wrapping_strategy(
 	let words = text_splitter(text, &triggers);
 
 	let mut line_from = 0;
+	let mut last_was_less = false;
 	for rng in words.iter() {
-		lines.push(rng.clone());
-
-		// println!("{lines:?}: {rng:?}");
-		// let line = &text[line_from..rng.end];
-		// let (width, _) = measure_line(line, real_size);
-		// match width.cmp(&det.aw) {
-		// 	Ordering::Greater => {
-		// 		// we went too far
-		// 		lines.push(line_from..rng.start);
-		// 		line_from = rng.start;
-		// 	}
-		// 	Ordering::Equal => {
-		// 		lines.push(line_from..rng.end);
-		// 		line_from = rng.end;
-		// 	}
-		// 	Ordering::Less => {
-		// 		// ok
-		// 	}
-		// }
+		let line = &text[line_from..rng.end];
+		let (width, _) = measure_line(line, real_size);
+		match width.cmp(&det.aw) {
+			Ordering::Greater => {
+				// we went too far
+				lines.push(line_from..rng.start);
+				line_from = rng.start;
+			}
+			Ordering::Equal => {
+				lines.push(line_from..rng.end);
+				line_from = rng.end;
+			}
+			Ordering::Less => {
+				// ok
+				last_was_less = true;
+			}
+		}
+	}
+	if last_was_less {
+		lines.push(line_from..text.len())
 	}
 }
 
