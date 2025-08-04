@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use raylib::{color::Color, math::Vector2, prelude::RaylibDraw};
+use raylib::{color::Color, math::Vector2, prelude::RaylibDraw, text::WeakFont};
 
 use crate::Layable;
 
@@ -13,6 +13,15 @@ pub const DEFAULT_COLOR: Color = Color::WHITE;
 /// currently font has one variant and it'll render using the default font
 #[derive(Debug, Clone)]
 pub struct Font;
+impl Font {
+	pub fn get_font(&self) -> raylib::ffi::Font {
+		let font = unsafe { raylib::ffi::GetFontDefault() };
+		font
+	}
+	pub fn get_font_d(&self, d: &mut crate::Handle) -> WeakFont {
+		d.get_font_default()
+	}
+}
 
 #[derive(Debug, Clone)]
 pub struct Text<'a>(pub Cow<'a, str>, pub i32, Font, Color);
@@ -34,22 +43,9 @@ impl<'a, I: Into<Cow<'a, str>>> Into<Text<'a>> for (I, i32) {
 
 impl<'a> Layable for Text<'a> {
 	fn size(&self) -> (i32, i32) {
-		let font = unsafe { raylib::ffi::GetFontDefault() };
-
-		let measure_line = |text| {
-			let cstring = std::ffi::CString::new(text)
-				.expect("CString::new failed while measuring text size:(");
-
-			let dimensions = unsafe {
-				raylib::ffi::MeasureTextEx(font, cstring.as_ptr(), self.1 as f32, SPACING)
-			};
-
-			(dimensions.x.ceil() as i32, dimensions.y.ceil() as i32)
-		};
-
 		self.0
 			.split('\n')
-			.map(measure_line)
+			.map(|line| measure_line(line, self.1))
 			.fold((0, 0), |acc, (x, y)| (acc.0.max(x), acc.1 + y - 1)) // i don't know why we need to remove 1 pixel from height per line
 	}
 	fn render(&self, d: &mut crate::Handle, det: crate::Details, scale: f32) {
@@ -68,4 +64,16 @@ impl<'a> Layable for Text<'a> {
 			self.3,
 		);
 	}
+}
+
+pub fn measure_line(text: &str, size: i32) -> (i32, i32) {
+	let font = Font.get_font();
+
+	let cstring =
+		std::ffi::CString::new(text).expect("CString::new failed while measuring text size:(");
+
+	let dimensions =
+		unsafe { raylib::ffi::MeasureTextEx(font, cstring.as_ptr(), size as f32, SPACING) };
+
+	(dimensions.x.ceil() as i32, dimensions.y.ceil() as i32)
 }

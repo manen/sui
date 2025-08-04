@@ -51,7 +51,7 @@ impl<L: Layable> Layable for &mut L {
 	}
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Hash, Default)]
 pub struct Details {
 	pub x: i32,
 	pub y: i32,
