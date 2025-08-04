@@ -71,9 +71,20 @@ impl<'a> WrappedText<'a> {
 			let hash = WrapData::hash(det, scale);
 
 			wrap_data.lines.drain(..).for_each(std::mem::drop);
-			wrap_data.lines.push(0..self.text.len());
 
-			let (width, height) = measure_line(&self.text, self.size);
+			let half = self.text.len() / 2;
+
+			wrap_data.lines.push(0..half);
+			wrap_data.lines.push(half..self.text.len());
+
+			let (mut width, mut height) = (0, 0);
+			for line in wrap_data.lines.iter().cloned() {
+				let line = &self.text[line];
+				let (line_width, line_height) = measure_line(line, self.size);
+				width = width.min(line_width);
+				height += line_height;
+			}
+
 			wrap_data.width = width;
 			wrap_data.height = height;
 
