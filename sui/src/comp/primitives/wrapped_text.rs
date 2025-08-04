@@ -68,14 +68,15 @@ impl<'a> WrappedText<'a> {
 	fn force_recalculate(&self, det: Details, scale: f32) {
 		{
 			let mut wrap_data = self.wrap_data.borrow_mut();
-			let hash = WrapData::hash(det, scale);
 
-			wrap_data.lines.drain(..).for_each(std::mem::drop);
+			{
+				wrap_data.lines.drain(..).for_each(std::mem::drop);
 
-			let half = self.text.len() / 2;
+				let half = self.text.len() / 2;
 
-			wrap_data.lines.push(0..half);
-			wrap_data.lines.push(half..self.text.len());
+				wrap_data.lines.push(0..half);
+				wrap_data.lines.push(half..self.text.len());
+			}
 
 			let (mut width, mut height) = (0, 0);
 			for line in wrap_data.lines.iter().cloned() {
@@ -88,6 +89,7 @@ impl<'a> WrappedText<'a> {
 			wrap_data.width = width;
 			wrap_data.height = height;
 
+			let hash = WrapData::hash(det, scale);
 			wrap_data.hash = hash;
 		}
 	}
@@ -96,7 +98,6 @@ impl<'a> WrappedText<'a> {
 impl<'a> Layable for WrappedText<'a> {
 	fn size(&self) -> (i32, i32) {
 		let wrap_data = self.wrap_data.borrow();
-
 		(wrap_data.width, wrap_data.height)
 	}
 
