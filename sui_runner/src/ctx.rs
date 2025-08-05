@@ -45,6 +45,7 @@ impl<L: Layable> Context<L> {
 	pub fn start(&mut self) {
 		let mut focus = Store::new(UniqueId::null());
 
+		self.rl.set_exit_key(None);
 		while !self.rl.window_should_close() {
 			self.tick(&mut focus);
 		}
