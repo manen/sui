@@ -1,4 +1,4 @@
-use crate::Layable;
+use crate::{core::ReturnEvent, Layable};
 
 #[derive(Copy, Clone, Debug)]
 /// Space is literally just some empty space
@@ -100,8 +100,9 @@ impl<L: Layable> Layable for Margin<L> {
 		events: impl Iterator<Item = crate::core::Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
 		self.layable
-			.pass_events(events, self.l_det(det, scale), scale)
+			.pass_events(events, self.l_det(det, scale), scale, ret_events)
 	}
 }

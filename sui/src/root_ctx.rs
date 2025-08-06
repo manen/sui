@@ -111,8 +111,11 @@ impl<L: Layable> RootContext<L> {
 		});
 		let events_to_fire = events_to_fire.into_iter().chain(key_downs);
 
+		let mut ret_events = Vec::new();
 		self.layable
-			.pass_events(events_to_fire, self.det, self.scale)
+			.pass_events(events_to_fire, self.det, self.scale, &mut ret_events);
+		ret_events
+			.into_iter()
 			.map(|event| {
 				let cast = E::cast_event(event);
 				if cast.can_take::<E>() {

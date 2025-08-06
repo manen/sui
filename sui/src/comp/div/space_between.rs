@@ -1,6 +1,10 @@
 use raylib::prelude::RaylibDraw;
 
-use crate::{comp::div::DivComponents, core::Event, Details, Layable};
+use crate::{
+	comp::div::DivComponents,
+	core::{Event, ReturnEvent},
+	Details, Layable,
+};
 
 #[macro_export]
 macro_rules! single_size {
@@ -124,20 +128,21 @@ impl<D: DivComponents> Layable for SpaceBetween<D> {
 		events: impl Iterator<Item = Event>,
 		det: Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
-		let event_f = move |event| match event {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
+		let mut event_f = move |event| match event {
 			Event::KeyboardEvent(_, _) => {
 				for comp in self.components.iter_components_mut().into_iter().flatten() {
-					let ret = comp.pass_events(std::iter::once(event), det, scale).next();
-					if let Some(ret) = ret {
-						return Some(ret);
+					let len_before = ret_events.len();
+					comp.pass_events(std::iter::once(event), det, scale, ret_events);
+					if len_before != ret_events.len() {
+						return;
 					}
 				}
-				None
 			}
 			Event::MouseEvent(m_event) => {
 				if !det.is_inside_tuple(m_event.at()) {
-					return None;
+					return;
 				}
 
 				let gap = self.calculate_gap(det, scale);
@@ -145,7 +150,7 @@ impl<D: DivComponents> Layable for SpaceBetween<D> {
 
 				let components = match self.components.iter_components_mut() {
 					Some(a) => a,
-					None => return None,
+					None => return,
 				};
 				for comp in components {
 					let l_size = comp.size();
@@ -164,9 +169,7 @@ impl<D: DivComponents> Layable for SpaceBetween<D> {
 						);
 					}
 					if l_det.is_inside_tuple(m_event.at()) {
-						return comp
-							.pass_events(std::iter::once(event), l_det, scale)
-							.next();
+						comp.pass_events(std::iter::once(event), l_det, scale, ret_events);
 					}
 
 					if !self.horizontal {
@@ -175,10 +178,11 @@ impl<D: DivComponents> Layable for SpaceBetween<D> {
 						x += (l_size.0 as f32 * scale) as i32 + gap;
 					}
 				}
-				None
 			}
 		};
 
-		events.filter_map(event_f)
+		for event in events {
+			event_f(event)
+		}
 	}
 }

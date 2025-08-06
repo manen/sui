@@ -1,7 +1,7 @@
 use raylib::{color::Color, prelude::RaylibDraw};
 
 use crate::{
-	core::{Event, KeyboardEvent, Store},
+	core::{Event, KeyboardEvent, ReturnEvent, Store},
 	Layable, Text,
 };
 
@@ -83,8 +83,9 @@ impl Layable for Typable {
 		event: impl Iterator<Item = Event>,
 		_det: crate::Details,
 		_scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
-		event.filter_map(|event| {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
+		for event in event {
 			let self_uiq = self.store.with_borrow(|a| a.uid);
 			match event {
 				Event::KeyboardEvent(this_uiq, KeyboardEvent::CharPressed(key))
@@ -96,10 +97,10 @@ impl Layable for Typable {
 						}
 						_ => data.text.push(key),
 					});
-					Some(Event::ret(TypeEvent::Handled))
+					ret_events.push(ReturnEvent::new(TypeEvent::Handled))
 				}
-				_ => None,
+				_ => (),
 			}
-		})
+		}
 	}
 }

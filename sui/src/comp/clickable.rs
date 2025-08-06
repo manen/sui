@@ -1,5 +1,5 @@
 use crate::{
-	core::{Event, MouseEvent},
+	core::{Event, MouseEvent, ReturnEvent},
 	Layable,
 };
 
@@ -63,8 +63,9 @@ impl<T, C: Layable, F: FnMut((i32, i32)) -> T> Layable for Clickable<C, F, T> {
 		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
-		let f = move |event| {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
+		let mut f = move |event| {
 			let mut respond = || match event {
 				Event::MouseEvent(MouseEvent::MouseClick { x, y }) => {
 					if det.is_inside(x, y) {
@@ -76,27 +77,35 @@ impl<T, C: Layable, F: FnMut((i32, i32)) -> T> Layable for Clickable<C, F, T> {
 				_ => None,
 			};
 
+			let mut testing = Vec::new();
 			if !self.fallback {
 				match respond() {
-					Some(a) => Some(a),
-					None => self
-						.comp
-						.pass_events(std::iter::once(event), det, scale)
-						.next(),
+					Some(a) => ret_events.push(a),
+					None => {
+						self.comp
+							.pass_events(std::iter::once(event), det, scale, &mut testing);
+						if let Some(a) = testing.drain(..).next() {
+							ret_events.push(a);
+						}
+					}
 				}
 			} else {
-				if let Some(comp_resp) = self
-					.comp
-					.pass_events(std::iter::once(event), det, scale)
-					.next()
-				{
-					Some(comp_resp)
+				if let Some(comp_resp) = {
+					self.comp
+						.pass_events(std::iter::once(event), det, scale, &mut testing);
+					testing.drain(..).next()
+				} {
+					ret_events.push(comp_resp)
 				} else {
-					respond()
+					if let Some(a) = respond() {
+						ret_events.push(a)
+					}
 				}
 			}
 		};
 
-		events.filter_map(f)
+		for event in events {
+			f(event)
+		}
 	}
 }

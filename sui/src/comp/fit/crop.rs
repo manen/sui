@@ -1,5 +1,5 @@
 use crate::{
-	core::{Event, MouseEvent},
+	core::{Event, MouseEvent, ReturnEvent},
 	Layable,
 };
 
@@ -37,7 +37,8 @@ impl<L: Layable> Layable for Crop<L> {
 		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
 		let filter_f = move |event| match event {
 			Event::MouseEvent(MouseEvent::MouseHeld { .. }) => {
 				// pass MouseHeld even if it's ouside just to have scrollbars working nicely
@@ -54,7 +55,11 @@ impl<L: Layable> Layable for Crop<L> {
 			_ => true,
 		};
 
-		self.layable
-			.pass_events(events.filter(move |event| filter_f(*event)), det, scale)
+		self.layable.pass_events(
+			events.filter(move |event| filter_f(*event)),
+			det,
+			scale,
+			ret_events,
+		)
 	}
 }

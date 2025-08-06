@@ -1,4 +1,4 @@
-use crate::core::{Event, Layable};
+use crate::core::{Event, Layable, ReturnEvent};
 use crate::{
 	comp::{Comp, Compatible},
 	Details,
@@ -156,10 +156,11 @@ impl<D: DivComponents> Layable for Div<D> {
 		events: impl Iterator<Item = Event>,
 		det: Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
 		let (self_w, self_h) = self.size();
 
-		let event_f = move |event| match self.components.iter_components_mut() {
+		let mut event_f = move |event| match self.components.iter_components_mut() {
 			Some(components) => match event {
 				Event::MouseEvent(m_event) => {
 					let (mouse_x, mouse_y) = m_event.at();
@@ -183,9 +184,8 @@ impl<D: DivComponents> Layable for Div<D> {
 						};
 
 						if comp_det.is_inside(mouse_x, mouse_y) {
-							return comp
-								.pass_events(std::iter::once(event), comp_det, scale)
-								.next(); // TODO mouse coords aren't translated
+							comp.pass_events(std::iter::once(event), comp_det, scale, ret_events);
+							// TODO mouse coords aren't translated
 						}
 
 						if !self.horizontal {
@@ -194,22 +194,23 @@ impl<D: DivComponents> Layable for Div<D> {
 							x += (comp_w as f32 * scale) as i32;
 						}
 					}
-					None
 				}
 				Event::KeyboardEvent(_, _) => {
 					for c in components {
-						if let Some(ret) = c.pass_events(std::iter::once(event), det, scale).next()
-						{
-							return Some(ret);
+						let len_before = ret_events.len();
+						c.pass_events(std::iter::once(event), det, scale, ret_events);
+						if len_before != ret_events.len() {
+							return;
 						}
 					}
-					None
 				}
 			},
-			_ => None,
+			_ => (),
 		};
 
-		events.filter_map(event_f)
+		for event in events {
+			event_f(event)
+		}
 	}
 }
 

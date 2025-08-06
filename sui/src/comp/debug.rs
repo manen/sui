@@ -1,6 +1,9 @@
 use raylib::prelude::RaylibDraw;
 
-use crate::{core::Event, Layable};
+use crate::{
+	core::{Event, ReturnEvent},
+	Layable,
+};
 
 #[derive(Clone, Debug)]
 /// `Debug` renders some useful ui debug info: \
@@ -50,7 +53,8 @@ impl<L: Layable> Layable for Debug<L> {
 		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
-		self.layable.pass_events(events, det, scale)
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
+		self.layable.pass_events(events, det, scale, ret_events)
 	}
 }

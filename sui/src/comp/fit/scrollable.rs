@@ -1,7 +1,7 @@
 use raylib::prelude::RaylibDraw;
 
 use crate::{
-	core::{Event, ImmutableWrap, MouseEvent},
+	core::{Event, ImmutableWrap, MouseEvent, ReturnEvent},
 	Details, Layable,
 };
 
@@ -271,7 +271,8 @@ impl<L: Layable> Layable for Scrollable<L> {
 		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
 		let (mul_x, mul_y) = self.mode.multipliers_f32();
 		let (l_w, l_h) = self.layable.size();
 
@@ -373,9 +374,7 @@ impl<L: Layable> Layable for Scrollable<L> {
 		}
 
 		let mut view = self.view_mut(scale);
-		view.pass_events(events.into_iter(), view_det, scale)
-			.collect::<Vec<_>>()
-			.into_iter()
+		view.pass_events(events.into_iter(), view_det, scale, ret_events)
 	}
 }
 
@@ -425,7 +424,8 @@ impl<L: Layable> Layable for View<L> {
 		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
 		let event_f = |event| match event {
 			Event::KeyboardEvent(_, _) => event,
 			Event::MouseEvent(a) => Event::MouseEvent(
@@ -435,6 +435,6 @@ impl<L: Layable> Layable for View<L> {
 
 		let events = events.map(event_f);
 		self.layable
-			.pass_events(events, self.l_det(det, scale), scale)
+			.pass_events(events, self.l_det(det, scale), scale, ret_events)
 	}
 }

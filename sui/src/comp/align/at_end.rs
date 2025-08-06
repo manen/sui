@@ -1,4 +1,7 @@
-use crate::{core::Event, Details, Layable};
+use crate::{
+	core::{Event, ReturnEvent},
+	Details, Layable,
+};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Mode {
@@ -78,8 +81,9 @@ impl<L: Layable> Layable for AtEnd<L> {
 		events: impl Iterator<Item = Event>,
 		det: Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
 		self.layable
-			.pass_events(events, self.l_det(det, scale), scale)
+			.pass_events(events, self.l_det(det, scale), scale, ret_events)
 	}
 }

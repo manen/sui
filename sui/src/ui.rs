@@ -6,7 +6,7 @@ use crate::{
 		scrollable::{ScrollableMode, ScrollableState},
 		Comp, Compatible,
 	},
-	core::ImmutableWrap,
+	core::{Event, ImmutableWrap, ReturnEvent},
 	Details, DynamicLayable, Layable,
 };
 
@@ -154,6 +154,17 @@ pub trait LayableExt: Layable + Sized {
 	/// see [RootContext]
 	fn root_context(&mut self, det: Details, scale: f32) -> RootContext<&mut Self> {
 		RootContext::new(self, det, scale)
+	}
+
+	fn pass_events_simple(
+		&mut self,
+		events: impl Iterator<Item = Event>,
+		det: Details,
+		scale: f32,
+	) -> Vec<ReturnEvent> {
+		let mut ret = Vec::new();
+		self.pass_events(events, det, scale, &mut ret);
+		ret
 	}
 }
 impl<L: Layable> LayableExt for L {}

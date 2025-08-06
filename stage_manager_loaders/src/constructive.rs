@@ -153,7 +153,8 @@ impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> Layable
 		events: impl Iterator<Item = sui::core::Event>,
 		det: sui::Details,
 		scale: f32,
-	) -> impl Iterator<Item = sui::core::ReturnEvent> {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
 		let finished = match &self.construct {
 			ConstructFunction::Simple(f) => match self.rx.borrow_mut().try_recv() {
 				Ok(item) => {
@@ -189,7 +190,9 @@ impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> Layable
 		};
 
 		self.loading_screen
-			.pass_events(events, det, scale)
-			.chain(opt)
+			.pass_events(events, det, scale, ret_events);
+		if let Some(finished) = opt {
+			ret_events.push(finished)
+		}
 	}
 }

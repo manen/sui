@@ -20,15 +20,16 @@ pub trait Layable {
 	fn render(&self, d: &mut Handle, det: Details, scale: f32);
 
 	fn tick(&mut self) {}
-	/// this function is called by the parent of this component \
-	/// return events to be bubbled back \
+
+	/// this is what other layables should implement
 	fn pass_events(
 		&mut self,
-		_events: impl Iterator<Item = Event>,
-		_det: Details,
-		_scale: f32,
-	) -> impl Iterator<Item = ReturnEvent> {
-		std::iter::empty()
+		events: impl Iterator<Item = Event>,
+		det: Details,
+		scale: f32,
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
+		let _ = (events, det, scale, ret_events);
 	}
 }
 impl<L: Layable> Layable for &mut L {
@@ -46,8 +47,9 @@ impl<L: Layable> Layable for &mut L {
 		event: impl Iterator<Item = Event>,
 		det: Details,
 		scale: f32,
-	) -> impl Iterator<Item = ReturnEvent> {
-		L::pass_events(self, event, det, scale)
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
+		L::pass_events(self, event, det, scale, ret_events)
 	}
 }
 

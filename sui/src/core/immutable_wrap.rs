@@ -1,4 +1,4 @@
-use crate::Layable;
+use crate::{core::ReturnEvent, Layable};
 
 /// a wrapper for any Layable that makes it possible to implement Layable
 /// for an immutable reference
@@ -24,7 +24,8 @@ impl<'a, L: Layable> Layable for ImmutableWrap<'a, L> {
 		events: impl Iterator<Item = super::Event>,
 		_det: super::Details,
 		_scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		_ret_events: &mut Vec<ReturnEvent>,
+	) {
 		println!(
 			"dropped all events passed to ImmutableLayable; passing events requires mutability\nevents: ["
 		);
@@ -32,7 +33,5 @@ impl<'a, L: Layable> Layable for ImmutableWrap<'a, L> {
 			println!("  {event:?}");
 		}
 		println!("]");
-
-		std::iter::empty()
 	}
 }

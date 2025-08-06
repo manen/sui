@@ -99,8 +99,9 @@ impl<T: Send> Layable for Loader<T> {
 		events: impl Iterator<Item = sui::core::Event>,
 		det: sui::Details,
 		scale: f32,
-	) -> impl Iterator<Item = sui::core::ReturnEvent> {
-		let a = match self.rx.try_recv() {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
+		let finished = match self.rx.try_recv() {
 			Ok(item) => {
 				let processed = (self.post_process)(item);
 				Some(ReturnEvent::new(processed))
@@ -114,7 +115,9 @@ impl<T: Send> Layable for Loader<T> {
 		};
 
 		self.loading_screen
-			.pass_events(events, det, scale)
-			.chain(a.into_iter())
+			.pass_events(events, det, scale, ret_events);
+		if let Some(finished) = finished {
+			ret_events.push(finished);
+		}
 	}
 }

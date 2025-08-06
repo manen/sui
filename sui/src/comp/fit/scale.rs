@@ -1,4 +1,7 @@
-use crate::{core::Event, Layable};
+use crate::{
+	core::{Event, ReturnEvent},
+	Layable,
+};
 
 #[derive(Clone, Debug)]
 pub struct Scale<L: Layable> {
@@ -28,7 +31,8 @@ impl<L: Layable> Layable for Scale<L> {
 		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
 		let map_event = |event| match event {
 			Event::MouseEvent(m) => Event::MouseEvent(m.with_cursor_pos_transform(|(x, y)| {
 				(
@@ -38,6 +42,7 @@ impl<L: Layable> Layable for Scale<L> {
 			})),
 			_ => event,
 		};
-		self.layable.pass_events(events.map(map_event), det, scale)
+		self.layable
+			.pass_events(events.map(map_event), det, scale, ret_events)
 	}
 }

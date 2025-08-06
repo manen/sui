@@ -1,4 +1,4 @@
-use crate::core::{Details, Event, Layable};
+use crate::core::{Details, Event, Layable, ReturnEvent};
 use std::fmt::Debug;
 
 /// DynamicLayable is like dyn Layable but better
@@ -12,8 +12,13 @@ pub struct DynamicLayable<'a> {
 	render: fn(*const u8, d: &mut crate::Handle, det: Details, scale: f32),
 
 	tick: fn(*mut u8),
-	pass_events:
-		fn(*mut u8, events: Vec<Event>, det: Details, scale: f32) -> Vec<crate::core::ReturnEvent>,
+	pass_events: fn(
+		*mut u8,
+		events: Vec<Event>,
+		det: Details,
+		scale: f32,
+		ret_events: &mut Vec<ReturnEvent>,
+	),
 
 	drop: fn(*mut u8),
 	clone: Option<fn(*const u8, std::alloc::Layout) -> *mut u8>,
@@ -96,14 +101,15 @@ impl<'a> DynamicLayable<'a> {
 			events: Vec<Event>,
 			det: Details,
 			scale: f32,
-		) -> Vec<crate::core::ReturnEvent> {
+			ret_events: &mut Vec<ReturnEvent>,
+		) {
 			L::pass_events(
 				unsafe { &mut *(ptr as *mut L) },
 				events.into_iter(),
 				det,
 				scale,
+				ret_events,
 			)
-			.collect()
 		}
 
 		fn drop<L: Layable>(ptr: *mut u8) {
@@ -213,8 +219,9 @@ impl<'a> Layable for DynamicLayable<'a> {
 		events: impl Iterator<Item = Event>,
 		det: Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
-		(self.pass_events)(self.ptr, events.collect(), det, scale).into_iter()
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
+		(self.pass_events)(self.ptr, events.collect(), det, scale, ret_events);
 	}
 }
 // common trait impls
@@ -272,6 +279,7 @@ unsafe impl Send for DynamicLayable<'static> {}
 #[cfg(test)]
 mod dynamiclayable_tests {
 	use super::*;
+	use crate::LayableExt;
 
 	#[derive(Clone, Debug, PartialEq, Eq)]
 	struct TakeDummy(Vec<i32>);
@@ -285,8 +293,9 @@ mod dynamiclayable_tests {
 			events: impl Iterator<Item = Event>,
 			_: Details,
 			_: f32,
-		) -> impl Iterator<Item = crate::core::ReturnEvent> {
-			events.map(Event::ret)
+			ret: &mut Vec<ReturnEvent>,
+		) {
+			ret.extend(events.map(Event::ret))
 		}
 	}
 
@@ -321,10 +330,12 @@ mod dynamiclayable_tests {
 
 		assert_eq!(a.size(), b.size());
 		assert_eq!(
-			a.pass_events(test_events.clone(), Default::default(), 1.0)
+			a.pass_events_simple(test_events.clone(), Default::default(), 1.0)
+				.into_iter()
 				.next()
 				.map(|ret| ret.take::<Event>()),
-			b.pass_events(test_events, Default::default(), 1.0)
+			b.pass_events_simple(test_events, Default::default(), 1.0)
+				.into_iter()
 				.next()
 				.map(|ret| ret.take())
 		);
@@ -365,8 +376,9 @@ mod dynamiclayable_tests {
 				events: impl Iterator<Item = Event>,
 				_: Details,
 				_: f32,
-			) -> impl Iterator<Item = crate::core::ReturnEvent> {
-				events.map(Event::ret)
+				ret: &mut Vec<ReturnEvent>,
+			) {
+				ret.extend(events.map(Event::ret))
 			}
 		}
 		impl Drop for Dummy {
@@ -409,8 +421,9 @@ mod dynamiclayable_tests {
 				events: impl Iterator<Item = Event>,
 				_: Details,
 				_: f32,
-			) -> impl Iterator<Item = crate::core::ReturnEvent> {
-				events.map(Event::ret)
+				ret: &mut Vec<ReturnEvent>,
+			) {
+				ret.extend(events.map(Event::ret))
 			}
 		}
 

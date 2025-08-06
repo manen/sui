@@ -1,4 +1,7 @@
-use crate::{core::Event, Details, Layable};
+use crate::{
+	core::{Event, ReturnEvent},
+	Details, Layable,
+};
 
 #[derive(Clone, Debug)]
 /// self.size() is self.layable.size(), the centering only happens on self.render()
@@ -44,8 +47,9 @@ impl<L: Layable> Layable for Centered<L> {
 		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
 		self.layable
-			.pass_events(events, self.l_det(det, scale), scale)
+			.pass_events(events, self.l_det(det, scale), scale, ret_events)
 	}
 }

@@ -1,4 +1,7 @@
-use crate::{core::Event, Layable};
+use crate::{
+	core::{Event, ReturnEvent},
+	Layable,
+};
 
 #[derive(Copy, Clone, Debug)]
 /// is the width or the height going to be fixed
@@ -61,7 +64,9 @@ impl<L: Layable> Layable for FixedSize<L> {
 		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
-		self.layable.pass_events(events, self.l_det(det), scale)
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
+		self.layable
+			.pass_events(events, self.l_det(det), scale, ret_events)
 	}
 }

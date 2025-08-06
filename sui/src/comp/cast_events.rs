@@ -1,5 +1,5 @@
 use crate::{
-	core::{Event, FeaturedReturn},
+	core::{Event, FeaturedReturn, ReturnEvent},
 	Layable,
 };
 
@@ -36,9 +36,11 @@ impl<E: FeaturedReturn, L: Layable> Layable for CastEvents<E, L> {
 		events: impl Iterator<Item = Event>,
 		det: crate::Details,
 		scale: f32,
-	) -> impl Iterator<Item = crate::core::ReturnEvent> {
-		self.layable
-			.pass_events(events, det, scale)
-			.map(|event| E::cast_event(event))
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
+		let mut received = Vec::new();
+		self.layable.pass_events(events, det, scale, &mut received);
+
+		ret_events.extend(received.into_iter().map(|event| E::cast_event(event)))
 	}
 }

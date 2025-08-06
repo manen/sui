@@ -1,6 +1,6 @@
 use std::{cell::RefCell, fmt::Debug, ops::DerefMut, rc::Rc};
 
-use sui::{DynamicLayable, Layable, core::ReturnEvent};
+use sui::{DynamicLayable, Layable, LayableExt, core::ReturnEvent};
 
 pub enum StageChange<'a> {
 	Simple(DynamicLayable<'a>),
@@ -54,9 +54,22 @@ impl Stage {
 	}
 
 	/// if u have self.comp already borrowed then you're crashing
-	fn handle_rets(&mut self, ret: Vec<ReturnEvent>) -> Vec<ReturnEvent> {
-		let mut ret_back = Vec::with_capacity(ret.len());
-		for ret in ret {
+	fn handle_rets(&mut self, ret: &mut Vec<ReturnEvent>, len_before: usize) {
+		let changed_rng = len_before..ret.len();
+		let changed = &ret[changed_rng];
+
+		let stage_change_i = changed
+			.iter()
+			.enumerate()
+			.filter(|(_, ret)| ret.can_take::<StageChange>())
+			.map(|(a, _)| a)
+			.collect::<Vec<_>>();
+		let mut stage_changes = Vec::with_capacity(stage_change_i.len());
+		for i in stage_change_i {
+			stage_changes.push(ret.swap_remove(i))
+		}
+
+		for ret in stage_changes {
 			if ret.can_take::<StageChange>() {
 				let change: StageChange = ret.take().expect("can_take said yes but couldn't take");
 
@@ -81,11 +94,8 @@ impl Stage {
 						}
 					}
 				}
-			} else {
-				ret_back.push(ret);
 			}
 		}
-		ret_back
 	}
 }
 impl Layable for Stage {
@@ -98,29 +108,19 @@ impl Layable for Stage {
 
 	fn tick(&mut self) {
 		self.comp.borrow_mut().tick();
-
-		if false {
-			let ret = self
-				.comp
-				.borrow_mut()
-				.pass_events(std::iter::empty(), Default::default(), 1.0)
-				.collect::<Vec<_>>();
-
-			self.handle_rets(ret);
-		}
 	}
 	fn pass_events(
 		&mut self,
 		events: impl Iterator<Item = sui::core::Event>,
 		det: sui::Details,
 		scale: f32,
-	) -> impl Iterator<Item = sui::core::ReturnEvent> {
-		let ret = self
-			.comp
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
+		let len_before = ret_events.len();
+		self.comp
 			.borrow_mut()
-			.pass_events(events, det, scale)
-			.collect::<Vec<_>>(); // too many allocs this hurt to write
+			.pass_events(events, det, scale, ret_events);
 
-		self.handle_rets(ret).into_iter()
+		self.handle_rets(ret_events, len_before);
 	}
 }

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use sui::{DynamicLayable, Layable};
+use sui::{DynamicLayable, Layable, core::ReturnEvent};
 use tokio::sync::mpsc::{Receiver, Sender, error::TryRecvError};
 
 #[derive(Debug, Clone)]
@@ -122,10 +122,14 @@ impl<T: Send + Debug + 'static> Layable for RemoteStage<T> {
 		events: impl Iterator<Item = sui::core::Event>,
 		det: sui::Details,
 		scale: f32,
-	) -> impl Iterator<Item = sui::core::ReturnEvent> {
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
 		self.try_recv();
 
-		for event in self.current.pass_events(events, det, scale) {
+		let len_before = ret_events.len();
+		self.current.pass_events(events, det, scale, ret_events);
+
+		for event in ret_events.drain(len_before..) {
 			if event.can_take::<RemoteEvent<T>>() {
 				let event: RemoteEvent<T> = event
 					.take()
@@ -142,6 +146,5 @@ impl<T: Send + Debug + 'static> Layable for RemoteStage<T> {
 				}
 			}
 		}
-		std::iter::empty()
 	}
 }
