@@ -132,6 +132,8 @@ impl Layable for Texture {
 		(self.tex.width, self.tex.height)
 	}
 	fn render(&self, d: &mut crate::Handle, det: Details, scale: f32) {
-		self.render(d, det.mul_size(scale));
+		let det = det.mul_size(scale);
+		self.render(d, det);
+		// d.draw_rectangle_lines(det.x, det.y, det.aw, det.ah, Color::RED);
 	}
 }
