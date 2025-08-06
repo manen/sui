@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{Details, Layable};
 
 use raylib::{
@@ -47,23 +49,25 @@ pub fn render_to_raylib_tex<L: Layable>(
 	unsafe { Texture2D::from_raw(flipped_tex) }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Texture {
-	tex: Texture2D,
+	tex: Arc<Texture2D>,
 }
-impl Clone for Texture {
-	fn clone(&self) -> Self {
-		let image = self
-			.tex
-			.load_image()
-			.expect("Texture.tex.load_image failed");
-		let image = unsafe { image.unwrap() };
-		let new_tex = unsafe { raylib::ffi::LoadTextureFromImage(image) };
-		let new_tex = unsafe { Texture2D::from_raw(new_tex) };
+// impl Clone for Texture { //* this was the old copying clone impl
+// 	fn clone(&self) -> Self {
+// 		let image = self
+// 			.tex
+// 			.load_image()
+// 			.expect("Texture.tex.load_image failed");
+// 		let image = unsafe { image.unwrap() };
+// 		let new_tex = unsafe { raylib::ffi::LoadTextureFromImage(image) };
+// 		let new_tex = unsafe { Texture2D::from_raw(new_tex) };
 
-		Self { tex: new_tex }
-	}
-}
+// 		Self {
+// 			tex: Arc::new(new_tex),
+// 		}
+// 	}
+// }
 impl AsRef<Texture2D> for Texture {
 	fn as_ref(&self) -> &Texture2D {
 		&self.tex
@@ -71,7 +75,7 @@ impl AsRef<Texture2D> for Texture {
 }
 impl Texture {
 	pub fn new_from_raylib(tex: Texture2D) -> Self {
-		Self { tex }
+		Self { tex: Arc::new(tex) }
 	}
 	pub fn from_layable<L: Layable>(d: &mut crate::Handle, layable: &L) -> Self {
 		let (w, h) = layable.size();
@@ -104,7 +108,7 @@ impl Texture {
 	/// does not correct for the position change caused by the rotation
 	pub fn render_with_rotation(&self, d: &mut crate::Handle, det: Details, degrees: f32) {
 		d.draw_texture_pro(
-			&self.tex,
+			self.tex.as_ref(),
 			Rectangle {
 				x: 0.0,
 				y: 0.0,
