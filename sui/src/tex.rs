@@ -137,3 +137,21 @@ impl Layable for Texture {
 		// d.draw_rectangle_lines(det.x, det.y, det.aw, det.ah, Color::RED);
 	}
 }
+
+impl Layable for Option<Texture> {
+	fn size(&self) -> (i32, i32) {
+		match self {
+			Some(a) => a.size(),
+			None => (0, 0),
+		}
+	}
+	fn render(&self, d: &mut crate::Handle, det: Details, scale: f32) {
+		match self {
+			Some(a) => <Texture as Layable>::render(a, d, det, scale),
+			None => {
+				let det = det.mul_size(scale);
+				d.draw_rectangle(det.x, det.y, det.aw, det.ah, Color::PURPLE);
+			}
+		}
+	}
+}
