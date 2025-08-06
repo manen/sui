@@ -12,9 +12,13 @@ pub struct DynamicLayable<'a> {
 	render: fn(*const u8, d: &mut crate::Handle, det: Details, scale: f32),
 
 	tick: fn(*mut u8),
+
+	/// only here so we don't need to reallocate on every pass_events call \
+	/// should be and is empty between pass_events calls
+	incoming_events_cache: Vec<Event>,
 	pass_events: fn(
 		*mut u8,
-		events: Vec<Event>,
+		events: std::vec::Drain<'_, Event>,
 		det: Details,
 		scale: f32,
 		ret_events: &mut Vec<ReturnEvent>,
@@ -98,14 +102,14 @@ impl<'a> DynamicLayable<'a> {
 		}
 		fn pass_events<L: Layable>(
 			ptr: *mut u8,
-			events: Vec<Event>,
+			events: std::vec::Drain<'_, Event>,
 			det: Details,
 			scale: f32,
 			ret_events: &mut Vec<ReturnEvent>,
 		) {
 			L::pass_events(
 				unsafe { &mut *(ptr as *mut L) },
-				events.into_iter(),
+				events,
 				det,
 				scale,
 				ret_events,
@@ -125,6 +129,7 @@ impl<'a> DynamicLayable<'a> {
 			size: size::<L>,
 			render: render::<L>,
 			tick: tick::<L>,
+			incoming_events_cache: Vec::new(),
 			pass_events: pass_events::<L>,
 			drop: drop::<L>,
 			clone: None,
@@ -221,7 +226,14 @@ impl<'a> Layable for DynamicLayable<'a> {
 		scale: f32,
 		ret_events: &mut Vec<ReturnEvent>,
 	) {
-		(self.pass_events)(self.ptr, events.collect(), det, scale, ret_events);
+		self.incoming_events_cache.extend(events);
+		(self.pass_events)(
+			self.ptr,
+			self.incoming_events_cache.drain(..),
+			det,
+			scale,
+			ret_events,
+		);
 	}
 }
 // common trait impls
@@ -261,6 +273,7 @@ impl<'a> Clone for DynamicLayable<'a> {
 					size: self.size,
 					render: self.render,
 					tick: self.tick,
+					incoming_events_cache: Vec::new(),
 					pass_events: self.pass_events,
 					drop: self.drop,
 					clone: self.clone,
