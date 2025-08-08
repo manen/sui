@@ -93,9 +93,22 @@ impl<D: DivComponents> Div<D> {
 		}
 	}
 }
-impl<'a> Div<Vec<Comp<'a>>> {
-	pub fn push<C: Compatible<'a>>(&mut self, c: C) {
-		self.components.push(c.into_comp());
+impl<'a, L: Layable> Div<Vec<L>> {
+	pub fn empty_with_capacity(capacity: usize) -> Self {
+		Self {
+			components: Vec::with_capacity(capacity),
+			horizontal: false,
+		}
+	}
+	pub fn empty_horizontal_with_capacity(capacity: usize) -> Self {
+		Self {
+			components: Vec::with_capacity(capacity),
+			horizontal: true,
+		}
+	}
+
+	pub fn push(&mut self, next_layable: L) {
+		self.components.push(next_layable)
 	}
 }
 impl<D: DivComponents> Layable for Div<D> {
