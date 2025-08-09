@@ -1,0 +1,12 @@
+[package]
+name = "asset_provider_font"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sui.workspace = true
+tokio.workspace = true
+asset_provider.workspace = true
+
+anyhow = "1.0.98"
+temp-dir = "0.1.16"

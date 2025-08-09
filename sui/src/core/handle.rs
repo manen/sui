@@ -28,6 +28,7 @@ impl<'a> Handle<'a> {
 	pub fn thread(&self) -> &RaylibThread {
 		&self.thread
 	}
+
 	pub fn to_parts(&self) -> (&RaylibDrawHandle<'a>, &RaylibThread) {
 		(&self.d, &self.thread)
 	}
@@ -38,6 +39,7 @@ impl<'a> Handle<'a> {
 	pub fn focus(&self) -> UniqueId {
 		self.focus
 	}
+	/// self.thread is just a borrow so there's no need to return that
 	pub fn take(self) -> RaylibDrawHandle<'a> {
 		self.d
 	}
