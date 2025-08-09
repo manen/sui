@@ -59,7 +59,7 @@ impl<'a> Layable for Text<'a> {
 			d.draw_rectangle_lines(det.x, det.y, s.0, s.1, Color::WHITE);
 		}
 
-		let font = d.get_font_default();
+		let font = self.2.get_font_d(d);
 		d.draw_text_ex(
 			font,
 			&self.0,
