@@ -10,6 +10,9 @@ pub use fit::*;
 pub mod primitives;
 pub use primitives::*;
 
+pub mod text;
+pub use text::{Text, WrappedText};
+
 pub mod align;
 pub use align::*;
 
