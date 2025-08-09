@@ -26,6 +26,8 @@ impl<L: Layable> Centered<L> {
 			y: det.y + y_offset,
 			aw: det.aw - x_offset,
 			ah: det.ah - y_offset,
+			// aw: l_w as i32,
+			// ah: l_h as i32,
 		};
 
 		l_det
