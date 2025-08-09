@@ -32,7 +32,7 @@ pub async fn load_font<'a, A: Assets>(
 
 		let font_size = 32;
 
-		let chars = None;
+		let chars = Some("!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÁÉÍÓÖŐÚÜŰáéíóöőúüű");
 
 		rl.load_font_from_memory(th, file_type, file_data, font_size, chars)
 	}
