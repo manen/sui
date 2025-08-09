@@ -48,8 +48,15 @@ impl<'a> WrappedText<'a> {
 	pub fn new<I: Into<Cow<'a, str>>>(text: I, size: i32) -> Self {
 		Self::new_colored(text, size, DEFAULT_COLOR)
 	}
-
 	pub fn new_colored<I: Into<Cow<'a, str>>>(text: I, size: i32, color: Color) -> Self {
+		Self::new_explicit(text, size, Font::default(), color)
+	}
+	pub fn new_explicit<I: Into<Cow<'a, str>>>(
+		text: I,
+		size: i32,
+		font: Font,
+		color: Color,
+	) -> Self {
 		let text = text.into();
 		let wrap_data = WrapData::default();
 		let wrap_data = Rc::new(RefCell::new(wrap_data));
@@ -57,7 +64,7 @@ impl<'a> WrappedText<'a> {
 		Self {
 			text,
 			size,
-			font: Font,
+			font,
 			color,
 			wrap_data,
 		}
@@ -105,21 +112,21 @@ impl<'a> Layable for WrappedText<'a> {
 	fn render(&self, d: &mut crate::Handle, det: crate::Details, scale: f32) {
 		self.recalculate(det, scale);
 
-		let font = self.font.get_font_d(d);
-
-		let mut y = det.y;
-		for line in self.wrap_data.borrow().lines.iter().cloned() {
-			let text = &self.text[line];
-			d.draw_text_ex(
-				&font,
-				text,
-				Vector2::new(det.x as f32, y as f32),
-				self.size as f32 * scale,
-				SPACING,
-				self.color,
-			);
-			y += self.size;
-		}
+		self.font.with_font(|font| {
+			let mut y = det.y;
+			for line in self.wrap_data.borrow().lines.iter().cloned() {
+				let text = &self.text[line];
+				d.draw_text_ex(
+					&font,
+					text,
+					Vector2::new(det.x as f32, y as f32),
+					self.size as f32 * scale,
+					SPACING,
+					self.color,
+				);
+				y += self.size;
+			}
+		});
 	}
 }
 
