@@ -6,10 +6,14 @@ use sui::comp::text::Font;
 use temp_dir::TempDir;
 use tokio::io::AsyncWriteExt;
 
-pub async fn load_font<'a, A: Assets>(
+pub async fn load_font_explicit<'a, A: Assets>(
 	assets: &A,
 	key: &str,
 	d: &mut sui::Handle<'a>,
+	// the size of the texture the fonts will get rendered to. doesn't control size, only resolution
+	font_raster_size: i32,
+	// higher multiplier -> smaller font
+	base_size_multiplier: f32,
 ) -> anyhow::Result<Font> {
 	// let font_path = into_temp_dir(assets, key).await?;
 	let asset = assets.asset(key).await?;
@@ -30,14 +34,16 @@ pub async fn load_font<'a, A: Assets>(
 
 		let file_data = asset.as_slice();
 
-		let font_size = 32;
+		let font_size = font_raster_size;
 
 		let chars = Some("!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÁÉÍÓÖŐÚÜŰáéíóöőúüű");
 
 		rl.load_font_from_memory(th, file_type, file_data, font_size, chars)
 	}
 	.with_context(|| format!("while loading font from {key}, from memory"));
-	let raylib_font: sui::raylib::text::Font = font?;
+	let mut raylib_font: sui::raylib::text::Font = font?;
+
+	raylib_font.baseSize = (raylib_font.baseSize as f32 * base_size_multiplier) as i32;
 
 	let font = sui::comp::text::Font::from_raylib(raylib_font, true);
 
