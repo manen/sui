@@ -111,24 +111,8 @@ impl<'a, L: Layable> Div<Vec<L>> {
 		self.components.push(next_layable)
 	}
 }
-impl<D: DivComponents> Layable for Div<D> {
-	fn size(&self) -> (i32, i32) {
-		let (mut w, mut h) = (0, 0);
-
-		for comp in self.components.iter_components() {
-			let (comp_w, comp_h) = comp.size();
-
-			if !self.horizontal {
-				(w, h) = (w.max(comp_w), h + comp_h)
-			} else {
-				(w, h) = (w + comp_w, h.max(comp_h))
-			}
-		}
-
-		(w, h)
-	}
-
-	fn render(&self, d: &mut crate::Handle, det: Details, scale: f32) {
+impl<D: DivComponents> Div<D> {
+	pub fn for_each<F: FnMut(&D::L, Details)>(&self, det: Details, scale: f32, mut f: F) {
 		let (mut x, mut y) = (det.x, det.y);
 		for comp in self.components.iter_components() {
 			let (comp_w, comp_h) = comp.size();
@@ -147,7 +131,7 @@ impl<D: DivComponents> Layable for Div<D> {
 				},
 			};
 
-			comp.render(d, comp_det, scale);
+			f(comp, comp_det);
 
 			if !self.horizontal {
 				y += (comp_h as f32 * scale) as i32;
@@ -155,6 +139,62 @@ impl<D: DivComponents> Layable for Div<D> {
 				x += (comp_w as f32 * scale) as i32;
 			}
 		}
+	}
+	pub fn for_each_mut<F: FnMut(&mut D::L, Details)>(
+		&mut self,
+		det: Details,
+		scale: f32,
+		mut f: F,
+	) {
+		let (mut x, mut y) = (det.x, det.y);
+		for comp in self.components.iter_components_mut().into_iter().flatten() {
+			let (comp_w, comp_h) = comp.size();
+			let comp_det = Details {
+				x,
+				y,
+				aw: if !self.horizontal {
+					(det.aw as f32 * scale) as i32
+				} else {
+					comp_w
+				},
+				ah: if self.horizontal {
+					(det.ah as f32 * scale) as i32
+				} else {
+					comp_h
+				},
+			};
+
+			f(comp, comp_det);
+
+			if !self.horizontal {
+				y += (comp_h as f32 * scale) as i32;
+			} else {
+				x += (comp_w as f32 * scale) as i32;
+			}
+		}
+	}
+}
+impl<D: DivComponents> Layable for Div<D> {
+	fn size(&self) -> (i32, i32) {
+		let (mut w, mut h) = (0, 0);
+
+		for comp in self.components.iter_components() {
+			let (comp_w, comp_h) = comp.size();
+
+			if !self.horizontal {
+				(w, h) = (w.max(comp_w), h + comp_h)
+			} else {
+				(w, h) = (w + comp_w, h.max(comp_h))
+			}
+		}
+
+		(w, h)
+	}
+
+	fn render(&self, d: &mut crate::Handle, det: Details, scale: f32) {
+		self.for_each(det, scale, |comp, l_det| {
+			comp.render(d, l_det, scale);
+		});
 	}
 
 	fn tick(&mut self) {
@@ -171,59 +211,22 @@ impl<D: DivComponents> Layable for Div<D> {
 		scale: f32,
 		ret_events: &mut Vec<ReturnEvent>,
 	) {
-		let (self_w, self_h) = self.size();
+		let events = events.collect::<Vec<_>>(); // TODO: make events clone
 
-		let mut event_f = move |event| match self.components.iter_components_mut() {
-			Some(components) => match event {
+		self.for_each_mut(det, scale, |comp, l_det| {
+			let l_events = events.iter().cloned().filter_map(|event| match event {
+				Event::KeyboardEvent(..) => Some(event),
 				Event::MouseEvent(m_event) => {
-					let (mouse_x, mouse_y) = m_event.at();
-
-					let (mut x, mut y) = (det.x, det.y);
-					for comp in components {
-						let (comp_w, comp_h) = comp.size();
-						let comp_det = Details {
-							x,
-							y,
-							aw: if !self.horizontal {
-								(self_w as f32 * scale) as i32
-							} else {
-								comp_w
-							},
-							ah: if self.horizontal {
-								(self_h as f32 * scale) as i32
-							} else {
-								comp_h
-							},
-						};
-
-						if comp_det.is_inside(mouse_x, mouse_y) {
-							comp.pass_events(std::iter::once(event), comp_det, scale, ret_events);
-							// TODO mouse coords aren't translated
-						}
-
-						if !self.horizontal {
-							y += (comp_h as f32 * scale) as i32;
-						} else {
-							x += (comp_w as f32 * scale) as i32;
-						}
+					if l_det.is_inside_tuple(m_event.at()) {
+						Some(event)
+					} else {
+						None
 					}
 				}
-				Event::KeyboardEvent(_, _) => {
-					for c in components {
-						let len_before = ret_events.len();
-						c.pass_events(std::iter::once(event), det, scale, ret_events);
-						if len_before != ret_events.len() {
-							return;
-						}
-					}
-				}
-			},
-			_ => (),
-		};
-
-		for event in events {
-			event_f(event)
-		}
+			});
+			let l_events = l_events.collect::<Vec<_>>().into_iter(); // TODO: allocations hurt my soul for some reason
+			comp.pass_events(l_events, l_det, scale, ret_events);
+		});
 	}
 }
 
