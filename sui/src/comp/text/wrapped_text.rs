@@ -66,6 +66,14 @@ impl WrapData {
 						line.end += static_line_rng.start;
 					}
 				}
+
+				// if for any reason the last line doesn't end on the end of the entire text,
+				// add a new line with just the remaining letters
+				if let Some(last_rng) = self.lines.iter().cloned().rev().next() {
+					if last_rng.end != text.len() {
+						self.lines.push(last_rng.end..text.len());
+					}
+				}
 			}
 
 			let (mut width, mut height) = (0, 0);
