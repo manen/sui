@@ -28,6 +28,38 @@ impl WrapData {
 		((scale * 40.0) as i32).hash(&mut hasher);
 		hasher.finish()
 	}
+
+	fn recalculate(&mut self, text: &str, size: i32, det: Details, scale: f32) {
+		let hash = WrapData::hash(det, scale);
+		if self.hash != hash {
+			self.force_recalculate(text, size, det, scale);
+		}
+	}
+	fn force_recalculate(&mut self, text: &str, size: i32, det: Details, scale: f32) {
+		{
+			{
+				self.lines.drain(..).for_each(std::mem::drop);
+
+				for static_line in text.split('\n') {
+					word_wrapping_strategy(static_line, size, &mut self.lines, det, scale);
+				}
+			}
+
+			let (mut width, mut height) = (0, 0);
+			for line in self.lines.iter().cloned() {
+				let line = &text[line];
+				let (line_width, line_height) = measure_line(line, size);
+				width = width.min(line_width);
+				height += line_height;
+			}
+
+			self.width = width;
+			self.height = height;
+
+			let hash = WrapData::hash(det, scale);
+			self.hash = hash;
+		}
+	}
 }
 
 /// the sibling of [`Text`](crate::comp::Text), with text wrapping enabled, meaning the text
@@ -71,43 +103,8 @@ impl<'a> WrappedText<'a> {
 	}
 
 	fn recalculate(&self, det: Details, scale: f32) {
-		let hash = WrapData::hash(det, scale);
-		if self.wrap_data.borrow().hash != hash {
-			self.force_recalculate(det, scale);
-		}
-	}
-	fn force_recalculate(&self, det: Details, scale: f32) {
-		{
-			let mut wrap_data = self.wrap_data.borrow_mut();
-
-			{
-				wrap_data.lines.drain(..).for_each(std::mem::drop);
-
-				for static_line in self.text.split('\n') {
-					word_wrapping_strategy(
-						static_line,
-						self.size,
-						&mut wrap_data.lines,
-						det,
-						scale,
-					);
-				}
-			}
-
-			let (mut width, mut height) = (0, 0);
-			for line in wrap_data.lines.iter().cloned() {
-				let line = &self.text[line];
-				let (line_width, line_height) = measure_line(line, self.size);
-				width = width.min(line_width);
-				height += line_height;
-			}
-
-			wrap_data.width = width;
-			wrap_data.height = height;
-
-			let hash = WrapData::hash(det, scale);
-			wrap_data.hash = hash;
-		}
+		let mut wrap_data = self.wrap_data.borrow_mut();
+		wrap_data.recalculate(&self.text, self.size, det, scale)
 	}
 }
 
