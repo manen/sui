@@ -83,7 +83,15 @@ impl<'a> WrappedText<'a> {
 			{
 				wrap_data.lines.drain(..).for_each(std::mem::drop);
 
-				word_wrapping_strategy(&self.text, self.size, &mut wrap_data.lines, det, scale);
+				for static_line in self.text.split('\n') {
+					word_wrapping_strategy(
+						static_line,
+						self.size,
+						&mut wrap_data.lines,
+						det,
+						scale,
+					);
+				}
 			}
 
 			let (mut width, mut height) = (0, 0);

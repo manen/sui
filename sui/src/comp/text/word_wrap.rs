@@ -18,8 +18,17 @@ pub fn word_wrapping_strategy(
 	let mut line_from = 0;
 	let mut last_was_less = false;
 	for rng in words.iter() {
+		last_was_less = false;
+
 		let line = &text[line_from..rng.end];
 		let (width, _) = measure_line(line, real_size);
+
+		// if line.ends_with('\n') {
+		// 	lines.push(line_from..rng.end - 1);
+		// 	line_from = rng.end;
+		// 	continue;
+		// }
+
 		match width.cmp(&det.aw) {
 			Ordering::Greater => {
 				// we went too far
