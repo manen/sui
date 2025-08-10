@@ -79,22 +79,27 @@ impl<T: Send + Debug> RemoteStage<T> {
 	}
 
 	fn try_recv(&mut self) {
-		match self.stage_rx.try_recv() {
-			Ok(RemoteStageChange::Simple(new_stage)) => self.current = new_stage,
-			Ok(RemoteStageChange::Swapper(swap_fn)) => {
-				let current_stage = std::mem::replace(
-					&mut self.current,
-					sui::custom(sui::comp::Space::new(10, 10)), // ! self.current replaced with a dummy stage for this block
-				);
-				let new_stage = swap_fn(current_stage);
+		loop {
+			match self.stage_rx.try_recv() {
+				Ok(RemoteStageChange::Simple(mut new_stage)) => {
+					// self.current = new_stage;
+					std::mem::swap(&mut self.current, &mut new_stage)
+				}
+				Ok(RemoteStageChange::Swapper(swap_fn)) => {
+					let current_stage = std::mem::replace(
+						&mut self.current,
+						sui::custom(sui::comp::Space::new(10, 10)), // ! self.current replaced with a dummy stage for this block
+					);
+					let new_stage = swap_fn(current_stage);
 
-				self.current = new_stage;
-			}
-			Err(TryRecvError::Empty) => (),
-			Err(TryRecvError::Disconnected) => {
-				panic!(
-					"RemoteStage's receiver disconnected while waiting for results to be yielded\nyour async environment that yields the stages should probably made to run forever, as dropping the RemoteStage aborts the task anyway"
-				)
+					self.current = new_stage;
+				}
+				Err(TryRecvError::Empty) => break,
+				Err(TryRecvError::Disconnected) => {
+					panic!(
+						"RemoteStage's receiver disconnected while waiting for results to be yielded\nyour async environment that yields the stages should probably made to run forever, as dropping the RemoteStage aborts the task anyway"
+					)
+				}
 			}
 		}
 	}
