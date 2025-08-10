@@ -6,7 +6,7 @@ use std::{
 };
 
 pub mod wrapped_text;
-pub use wrapped_text::WrappedText;
+pub use wrapped_text::{CenteredWrappedText, WrappedText};
 
 pub mod font;
 pub(self) mod word_wrap;

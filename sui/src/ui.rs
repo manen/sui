@@ -35,6 +35,10 @@ pub trait LayableExt: Layable + Sized {
 	fn centered(self) -> comp::Centered<Self> {
 		comp::Centered::new(self)
 	}
+	/// see [comp::CenterY]
+	fn center_y(self) -> comp::CenterY<Self> {
+		comp::CenterY::new(self)
+	}
 
 	/// see [comp::AtEnd]
 	fn to_right(self) -> comp::AtEnd<Self> {

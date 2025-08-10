@@ -1,16 +1,15 @@
 use std::{
 	borrow::Cow,
 	cell::RefCell,
-	cmp::Ordering,
 	hash::{DefaultHasher, Hash, Hasher},
-	ops::Range,
+	ops::{Deref, DerefMut, Range},
 	rc::Rc,
 };
 
 use raylib::{math::Vector2, prelude::RaylibDraw};
 
-use super::{measure_line, Font, DEFAULT_COLOR, SPACING};
-use crate::{Color, Details, Layable};
+use super::{measure_line, word_wrap, Font, DEFAULT_COLOR, SPACING};
+use crate::{comp::Centered, Color, Details, Layable, LayableExt};
 
 #[derive(Debug, Default)]
 pub struct WrapData {
@@ -40,8 +39,32 @@ impl WrapData {
 			{
 				self.lines.drain(..).for_each(std::mem::drop);
 
-				for static_line in text.split('\n') {
-					word_wrapping_strategy(static_line, size, &mut self.lines, det, scale);
+				// we have to get smart to handle static line breaks well
+				// we just let the strategy do its thing into the main vec, but we take those elements out
+				// and transform them and shit
+
+				// let static_line = text;
+
+				for static_line_rng in word_wrap::text_splitter(text, &[b'\n']) {
+					let static_line = &text[static_line_rng.clone()];
+
+					let len_before = self.lines.len();
+
+					word_wrap::word_wrapping_strategy(
+						static_line,
+						size,
+						&mut self.lines,
+						det,
+						scale,
+					);
+
+					for (i, line) in self.lines.iter_mut().enumerate() {
+						if i < len_before {
+							continue;
+						}
+						line.start += static_line_rng.start;
+						line.end += static_line_rng.start;
+					}
 				}
 			}
 
@@ -135,98 +158,85 @@ impl<'a> Layable for WrappedText<'a> {
 	}
 }
 
-/// expects lines to be empty already
-fn basic_wrapping_strategy(
-	text: &str,
-	size: i32,
-	lines: &mut Vec<Range<usize>>,
-	det: Details,
-	scale: f32,
-) {
-	//* caveats:
-	// - fix size per character
-	// - hardcoded scaling multiple
-	// - doesn't adjust to font size
+#[derive(Debug, Clone)]
+pub struct CenteredWrappedText<'a> {
+	pub text: Cow<'a, str>,
+	pub size: i32,
+	font: Font,
+	color: Color,
 
-	let chars_per_line = det.aw as f32 / (size as f32 * scale) * 2.0;
-	let chars_per_line = chars_per_line.max(1.0) as usize;
+	wrap_data: Rc<
+		RefCell<
+			// (
+			WrapData, // , Vec<Centered<crate::Text<'a>>>)
+		>,
+	>,
+}
+impl<'a> CenteredWrappedText<'a> {
+	pub fn new<I: Into<Cow<'a, str>>>(text: I, size: i32) -> Self {
+		Self::new_colored(text, size, DEFAULT_COLOR)
+	}
+	pub fn new_colored<I: Into<Cow<'a, str>>>(text: I, size: i32, color: Color) -> Self {
+		Self::new_explicit(text, size, Font::default(), color)
+	}
+	pub fn new_explicit<I: Into<Cow<'a, str>>>(
+		text: I,
+		size: i32,
+		font: Font,
+		color: Color,
+	) -> Self {
+		let text = text.into();
+		let wrap_data = Default::default();
 
-	let mut i = 0;
-	while i < text.len() {
-		let until = i + chars_per_line;
-		let until = until.min(text.len());
+		Self {
+			text,
+			size,
+			font,
+			color,
+			wrap_data,
+		}
+	}
 
-		let rng = i..until;
-		lines.push(rng);
-		i = until;
+	fn recalculate(&self, det: Details, scale: f32) {
+		let mut wrap_data = self.wrap_data.borrow_mut();
+		// let (wrap_data, lines) = wrap_data.deref_mut();
+
+		wrap_data.recalculate(&self.text, self.size, det, scale);
+
+		// let lines = {
+		// 	lines.drain(..).for_each(std::mem::drop);
+
+		// 	let lines_ui = wrap_data.lines.iter().cloned().map(|rng| {
+		// 		let line = &self.text[rng];
+		// 		let line = crate::Text::new(self.text.ra, self.size);
+
+		// 		let line = line.centered();
+		// 		line
+		// 	});
+		// 	lines.extend(lines_ui);
+		// };
 	}
 }
+impl<'a> Layable for CenteredWrappedText<'a> {
+	fn size(&self) -> (i32, i32) {
+		let wrap_data = self.wrap_data.borrow();
+		// let wrap_data = &wrap_data.deref().0;
+		(wrap_data.width, wrap_data.height)
+	}
 
-use super::word_wrap::word_wrapping_strategy;
+	fn render(&self, d: &mut crate::Handle, det: Details, scale: f32) {
+		self.recalculate(det, scale);
 
-/// expects lines to be empty already
-///
-/// accurately calculates available space for the characters, by incrementally
-/// caluclating the text's size with [measure_line] \
-/// much slower than basic_wrapping_strategy
-fn precise_wrapping_strategy(
-	text: &str,
-	size: i32,
-	lines: &mut Vec<Range<usize>>,
-	det: Details,
-	scale: f32,
-) {
-	//* caveats:
-	// - computationally expensive on det/scale change
+		{
+			let wrap_data = self.wrap_data.borrow();
 
-	let real_size = size as f32 * scale;
-	let real_size = real_size as i32;
+			let lines = wrap_data.lines.iter().cloned().map(|rng| &self.text[rng]);
+			let lines = lines.map(|line| crate::Text::new(line, self.size).centered());
 
-	let mut from = 0;
-	let mut to = 0;
+			let lines = lines.collect::<Vec<_>>();
+			let lines = crate::div(lines);
 
-	loop {
-		if to > text.len() {
-			break;
-		}
-
-		let test_line = &text[from..to];
-		let (width, _) = measure_line(test_line, real_size);
-
-		match width.cmp(&det.aw) {
-			Ordering::Greater => {
-				match to - from {
-					0 => {
-						to += 1;
-						lines.push(from..to);
-						from = to;
-						to += 1;
-					}
-					1 => {
-						lines.push(from..to);
-						from = to;
-						to += 1;
-					}
-					_ => {
-						// we went too far
-						lines.push(from..(to - 1));
-						from = to - 1;
-						to = from + 1;
-					}
-				}
-			}
-			Ordering::Equal => {
-				lines.push(from..to);
-				from = to;
-				to += 1;
-			}
-			Ordering::Less => {
-				to += 1;
-			}
-		}
-
-		if to == text.len() {
-			lines.push(from..to)
+			lines.render(d, det, scale)
 		}
 	}
 }
