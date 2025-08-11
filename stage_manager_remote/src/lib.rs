@@ -42,40 +42,55 @@ impl RemoteStageChange {
 }
 
 #[derive(Debug)]
+/// remote-controlled stage. \
+/// requires calling .tick to update content
 pub struct RemoteStage<T: Send + Debug> {
 	current: DynamicLayable<'static>,
 
-	handle: tokio::task::JoinHandle<()>,
+	handle: Option<tokio::task::JoinHandle<()>>,
 
 	stage_rx: Receiver<RemoteStageChange>,
 	events_tx: Sender<T>,
 }
 impl<T: Send + Debug> RemoteStage<T> {
-	pub fn new_explicit<F: Future<Output = ()> + Send + 'static>(
+	pub fn spawn_new_explicit<F: Future<Output = ()> + Send + 'static>(
 		layable: impl Layable + Debug + 'static,
 		controller: impl FnOnce(Sender<RemoteStageChange>, Receiver<T>) -> F + Send,
 	) -> Self {
+		let ((stage_tx, events_rx), mut s) = Self::new_explicit(layable);
+
+		let controller = controller(stage_tx, events_rx);
+		let handle = tokio::task::spawn(controller);
+
+		s.handle = Some(handle);
+		s
+	}
+	/// creates a new, remotely controlled stage
+	pub fn spawn_new<F: Future<Output = ()> + Send + 'static>(
+		controller: impl FnOnce(Sender<RemoteStageChange>, Receiver<T>) -> F + Send,
+	) -> Self {
+		Self::spawn_new_explicit(sui::comp::Space::new(10, 10), controller)
+	}
+
+	pub fn new_explicit(
+		layable: impl Layable + Debug + 'static,
+	) -> ((Sender<RemoteStageChange>, Receiver<T>), Self) {
 		let layable = sui::custom_only_debug(layable);
 
 		let (stage_tx, stage_rx) = tokio::sync::mpsc::channel(5);
 		let (events_tx, events_rx) = tokio::sync::mpsc::channel(10);
 
-		let controller = controller(stage_tx, events_rx);
-		let handle = tokio::task::spawn(controller);
-
-		Self {
+		let s = Self {
 			current: layable,
-			handle,
+			handle: None,
 			stage_rx,
 			events_tx,
-		}
-	}
+		};
 
-	/// creates a new, remotely controlled stage
-	pub fn new<F: Future<Output = ()> + Send + 'static>(
-		controller: impl FnOnce(Sender<RemoteStageChange>, Receiver<T>) -> F + Send,
-	) -> Self {
-		Self::new_explicit(sui::comp::Space::new(10, 10), controller)
+		((stage_tx, events_rx), s)
+	}
+	pub fn new() -> ((Sender<RemoteStageChange>, Receiver<T>), Self) {
+		Self::new_explicit(sui::comp::Space::new(10, 10))
 	}
 
 	fn try_recv(&mut self) {
@@ -106,7 +121,9 @@ impl<T: Send + Debug> RemoteStage<T> {
 }
 impl<T: Send + Debug> Drop for RemoteStage<T> {
 	fn drop(&mut self) {
-		self.handle.abort();
+		if let Some(handle) = &mut self.handle {
+			handle.abort();
+		}
 	}
 }
 
