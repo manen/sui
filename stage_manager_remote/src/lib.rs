@@ -3,6 +3,9 @@ use std::fmt::Debug;
 use sui::{DynamicLayable, Layable, core::ReturnEvent};
 use tokio::sync::mpsc::{Receiver, Sender, error::TryRecvError};
 
+mod sync_wrap;
+pub use sync_wrap::StageSyncWrap;
+
 #[derive(Debug, Clone)]
 /// this is the only event type that'll get relayed to the remote controller
 pub struct RemoteEvent<T>(pub T);
