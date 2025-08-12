@@ -39,10 +39,10 @@ impl<L: Layable> Margin<L> {
 	pub fn vertical(margin_v: i32, layable: L) -> Self {
 		Self::new(
 			MarginValues {
-				r: margin_v,
-				l: margin_v,
-				t: 0,
-				b: 0,
+				r: 0,
+				l: 0,
+				t: margin_v,
+				b: margin_v,
 			},
 			layable,
 		)
@@ -50,10 +50,10 @@ impl<L: Layable> Margin<L> {
 	pub fn horizontal(margin_h: i32, layable: L) -> Self {
 		Self::new(
 			MarginValues {
-				r: 0,
-				l: 0,
-				t: margin_h,
-				b: margin_h,
+				r: margin_h,
+				l: margin_h,
+				t: 0,
+				b: 0,
 			},
 			layable,
 		)
