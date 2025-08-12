@@ -61,6 +61,10 @@ pub trait LayableExt: Layable + Sized {
 	fn crop(self) -> comp::Crop<Self> {
 		comp::Crop::new(self)
 	}
+	/// see [comp::RestrictToSize]
+	fn restrict_to_size(self) -> comp::RestrictToSize<Self> {
+		comp::RestrictToSize::new(self)
+	}
 
 	/// see [comp::FixedSize]
 	fn fix_w(self, width: i32) -> comp::FixedSize<Self> {
