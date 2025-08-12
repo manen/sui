@@ -2,6 +2,7 @@ use crate::{
 	core::{Event, MouseEvent, ReturnEvent},
 	Layable,
 };
+use std::fmt::Debug;
 
 #[derive(Clone)]
 /// while this technically does work with any Layable, to implement Compatible C needs to be Comp
@@ -106,6 +107,62 @@ impl<T, C: Layable, F: FnMut((i32, i32)) -> T> Layable for Clickable<C, F, T> {
 
 		for event in events {
 			f(event)
+		}
+	}
+}
+
+// ---
+
+#[derive(Clone)]
+/// an alternate Clickable variant that:
+///
+/// 1. allows you to use a closure that has a static return type
+/// 2. allows optional return event generation
+pub struct OptionalClickable<L: Layable, F: FnMut() -> Option<ReturnEvent>> {
+	layable: L,
+	gen_f: F,
+}
+impl<L: Layable, F: FnMut() -> Option<ReturnEvent>> OptionalClickable<L, F> {
+	pub fn new(layable: L, gen_f: F) -> Self {
+		Self { layable, gen_f }
+	}
+}
+impl<L: Layable + Debug, F: FnMut() -> Option<ReturnEvent>> Debug for OptionalClickable<L, F> {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("NeoClickable")
+			.field("layable", &self.layable)
+			.finish()
+	}
+}
+impl<L: Layable, F: FnMut() -> Option<ReturnEvent>> Layable for OptionalClickable<L, F> {
+	fn size(&self) -> (i32, i32) {
+		self.layable.size()
+	}
+	fn render(&self, d: &mut crate::Handle, det: crate::Details, scale: f32) {
+		self.layable.render(d, det, scale);
+	}
+	fn tick(&mut self) {
+		self.layable.tick();
+	}
+	fn pass_events(
+		&mut self,
+		events: impl Iterator<Item = Event>,
+		det: crate::Details,
+		scale: f32,
+		ret_events: &mut Vec<ReturnEvent>,
+	) {
+		for event in events {
+			match event {
+				Event::MouseEvent(MouseEvent::MouseClick { x, y }) => {
+					if det.is_inside(x, y) {
+						let generated = (self.gen_f)();
+						if let Some(generated) = generated {
+							ret_events.push(generated)
+						}
+					}
+				}
+				_ => {}
+			}
 		}
 	}
 }

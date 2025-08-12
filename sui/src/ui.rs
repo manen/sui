@@ -142,6 +142,13 @@ pub trait LayableExt: Layable + Sized {
 	) -> comp::Clickable<Self, F, T> {
 		comp::Clickable::new_fallback(gen_ret, self)
 	}
+	/// see [comp::OptionalClickable]
+	fn clickable_optional<F: FnMut() -> Option<ReturnEvent>>(
+		self,
+		gen_f: F,
+	) -> comp::OptionalClickable<Self, F> {
+		comp::OptionalClickable::new(self, gen_f)
+	}
 
 	/// see [comp::Debug]
 	fn debug(self) -> comp::Debug<Self> {

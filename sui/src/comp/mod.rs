@@ -1,5 +1,5 @@
 pub mod clickable;
-pub use clickable::Clickable;
+pub use clickable::{Clickable, OptionalClickable};
 
 pub mod div;
 pub use div::Div;
