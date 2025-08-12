@@ -46,6 +46,12 @@ impl<T: Send + 'static> Loader<T> {
 			sui::DynamicLayable::new_notraits(loader)
 		})
 	}
+	pub fn new_invisible<F: Future<Output = T> + Send + 'static>(
+		future: F,
+		post_process: fn(T) -> StageChange<'static>,
+	) -> StageChange<'static> {
+		Self::new_overlay(sui::comp::Space::new(20, 20), future, post_process)
+	}
 
 	pub fn from_dyn<F: Future<Output = T> + Send + 'static>(
 		loading_screen: DynamicLayable<'static>,
