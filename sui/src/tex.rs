@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::{Details, Layable};
 
+pub use raylib::error::LoadTextureError;
 use raylib::{
 	color::Color,
 	math::{Rectangle, Vector2},
@@ -74,10 +75,34 @@ impl AsRef<Texture2D> for Texture {
 	}
 }
 impl Texture {
+	pub fn new_from_rgba8(
+		pixels: Vec<u8>,
+		size: (i32, i32),
+		d: &mut crate::Handle,
+	) -> Result<Self, LoadTextureError> {
+		let image = unsafe {
+			raylib::core::texture::Image::from_raw(raylib::ffi::Image {
+				data: pixels.as_ptr() as *mut std::ffi::c_void,
+				width: size.0 as _,
+				height: size.1 as _,
+				mipmaps: 1,
+				format: raylib::consts::PixelFormat::PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 as _,
+			})
+		};
+		std::mem::forget(pixels); // <- pixels is managed by image now
+
+		let (d, thread) = d.to_parts_mut();
+
+		let texture = d.load_texture_from_image(thread, &image)?;
+		let texture = Texture::new_from_raylib(texture);
+
+		Ok(texture)
+	}
+
 	pub fn new_from_raylib(tex: Texture2D) -> Self {
 		Self { tex: Arc::new(tex) }
 	}
-	pub fn from_layable<L: Layable>(d: &mut crate::Handle, layable: &L) -> Self {
+	pub fn new_from_layable<L: Layable>(d: &mut crate::Handle, layable: &L) -> Self {
 		let (w, h) = layable.size();
 		let tex = render_to_raylib_tex(
 			layable,
