@@ -17,7 +17,8 @@ pub enum ConstructFunction<T, P> {
 /// A [`loader`](crate::Loader) variation that can send multiple, smaller packets of data to the syncland (P),
 /// with a function to put that all into a collective storage (T), and the same post_process function the basic
 /// loader has. has many possible uses but maybe most useful for texture loading
-pub struct ConstructiveLoader<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> {
+pub struct ConstructiveLoader<T, P: Send + 'static, PostProcess: FnOnce(T) -> StageChange<'static>>
+{
 	pub loading_screen: DynamicLayable<'static>,
 
 	handle: JoinHandle<()>,
@@ -28,10 +29,10 @@ pub struct ConstructiveLoader<T, P: Send + 'static, PostProcess: Fn(T) -> StageC
 
 	t: Rc<RefCell<Option<T>>>,
 	construct: ConstructFunction<T, P>,
-	post_process: PostProcess,
+	post_process: Option<PostProcess>,
 }
 
-impl<T: Debug, P: Send + 'static + Debug, PostProcess: Fn(T) -> StageChange<'static>> Debug
+impl<T: Debug, P: Send + 'static + Debug, PostProcess: FnOnce(T) -> StageChange<'static>> Debug
 	for ConstructiveLoader<T, P, PostProcess>
 {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -46,7 +47,7 @@ impl<T: Debug, P: Send + 'static + Debug, PostProcess: Fn(T) -> StageChange<'sta
 	}
 }
 
-impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>>
+impl<T, P: Send + 'static, PostProcess: FnOnce(T) -> StageChange<'static>>
 	ConstructiveLoader<T, P, PostProcess>
 {
 	pub fn new_explicit<F: Future<Output = ()> + Send + 'static>(
@@ -73,7 +74,7 @@ impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>>
 			rx,
 			t,
 			construct,
-			post_process,
+			post_process: Some(post_process),
 			finished,
 		}
 	}
@@ -99,7 +100,7 @@ impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>>
 	}
 }
 
-impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> Drop
+impl<T, P: Send + 'static, PostProcess: FnOnce(T) -> StageChange<'static>> Drop
 	for ConstructiveLoader<T, P, PostProcess>
 {
 	fn drop(&mut self) {
@@ -107,7 +108,7 @@ impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> Drop
 	}
 }
 
-impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> Layable
+impl<T, P: Send + 'static, PostProcess: FnOnce(T) -> StageChange<'static>> Layable
 	for ConstructiveLoader<T, P, PostProcess>
 {
 	fn size(&self) -> (i32, i32) {
@@ -182,7 +183,9 @@ impl<T, P: Send + 'static, PostProcess: Fn(T) -> StageChange<'static>> Layable
 				.borrow_mut()
 				.take()
 				.expect("ConstructiveLoader finished, but self.t has already been taken");
-			let l = (self.post_process)(t);
+			let l = (self.post_process.take().expect(
+				"ConstructiveLoader already consumed its post process function; this should be impossible",
+			))(t);
 
 			Some(ReturnEvent::new(l))
 		} else {
