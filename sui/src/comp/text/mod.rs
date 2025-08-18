@@ -1,9 +1,6 @@
 use crate::Layable;
-use raylib::{color::Color, math::Vector2, prelude::RaylibDraw, text::WeakFont};
-use std::{
-	borrow::Cow,
-	sync::{Arc, Mutex},
-};
+use raylib::{color::Color, math::Vector2, prelude::RaylibDraw};
+use std::borrow::Cow;
 
 pub mod wrapped_text;
 pub use wrapped_text::{CenteredWrappedText, WrappedText};

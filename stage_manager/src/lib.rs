@@ -1,6 +1,6 @@
 use std::{cell::RefCell, fmt::Debug, ops::DerefMut, rc::Rc};
 
-use sui::{DynamicLayable, Layable, LayableExt, core::ReturnEvent};
+use sui::{DynamicLayable, Layable, core::ReturnEvent};
 
 pub enum StageChange<'a> {
 	Simple(DynamicLayable<'a>),

@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::{cmp::Ordering, ops::Range};
 
 use crate::{comp::text::measure_line, Details};

@@ -1,8 +1,5 @@
 use crate::core::{Event, Layable, ReturnEvent};
-use crate::{
-	comp::{Comp, Compatible},
-	Details,
-};
+use crate::Details;
 
 pub mod space_between;
 pub use space_between::SpaceBetween;

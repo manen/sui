@@ -1,7 +1,6 @@
-use raylib::text::WeakFont;
 use std::{
 	mem::ManuallyDrop,
-	ops::{Deref, DerefMut},
+	ops::Deref,
 	sync::{Arc, Mutex},
 };
 

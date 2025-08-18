@@ -2,14 +2,14 @@ use std::{
 	borrow::Cow,
 	cell::RefCell,
 	hash::{DefaultHasher, Hash, Hasher},
-	ops::{Deref, DerefMut, Range},
+	ops::Range,
 	rc::Rc,
 };
 
 use raylib::{math::Vector2, prelude::RaylibDraw};
 
 use super::{measure_line, word_wrap, Font, DEFAULT_COLOR, SPACING};
-use crate::{comp::Centered, Color, Details, Layable, LayableExt};
+use crate::{Color, Details, Layable, LayableExt};
 
 #[derive(Debug, Default)]
 pub struct WrapData {
@@ -239,7 +239,9 @@ impl<'a> Layable for CenteredWrappedText<'a> {
 			let wrap_data = self.wrap_data.borrow();
 
 			let lines = wrap_data.lines.iter().cloned().map(|rng| &self.text[rng]);
-			let lines = lines.map(|line| crate::Text::new(line, self.size).centered());
+			let lines = lines.map(|line| {
+				crate::Text::new_explicit(line, self.size, self.font.clone(), self.color).centered()
+			});
 
 			let lines = lines.collect::<Vec<_>>();
 			let lines = crate::div(lines);

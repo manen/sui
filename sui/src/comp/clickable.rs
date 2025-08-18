@@ -151,10 +151,11 @@ impl<L: Layable, F: FnMut() -> Option<ReturnEvent>> Layable for OptionalClickabl
 		scale: f32,
 		ret_events: &mut Vec<ReturnEvent>,
 	) {
+		let check_det = det.mul_size(scale);
 		for event in events {
 			match event {
 				Event::MouseEvent(MouseEvent::MouseClick { x, y }) => {
-					if det.is_inside(x, y) {
+					if check_det.is_inside(x, y) {
 						let generated = (self.gen_f)();
 						if let Some(generated) = generated {
 							ret_events.push(generated)
