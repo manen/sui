@@ -142,6 +142,7 @@ impl Details {
 			..self
 		}
 	}
+
 	pub fn is_inside(&self, x: i32, y: i32) -> bool {
 		x >= self.x && x <= self.x + self.aw // x
 			&& y >= self.y && y <= self.y + self.ah
@@ -149,5 +150,27 @@ impl Details {
 	pub fn is_inside_tuple(&self, (x, y): (i32, i32)) -> bool {
 		x >= self.x && x <= self.x + self.aw // x
 			&& y >= self.y && y <= self.y + self.ah
+	}
+
+	/// returns true if the two details share any area
+	pub fn intersects(&self, rhs: &Self) -> bool {
+		let (a, b) = (self, rhs);
+
+		let r1_left = a.x;
+		let r1_right = a.x + a.aw;
+		let r1_bottom = a.y;
+		let r1_top = a.y + a.ah;
+
+		let r2_left = b.x;
+		let r2_right = b.x + b.aw;
+		let r2_bottom = b.y;
+		let r2_top = b.y + b.ah;
+
+		let no_overlap = r1_right <= r2_left
+			|| r2_right <= r1_left
+			|| r1_top <= r2_bottom
+			|| r2_top <= r1_bottom;
+
+		!no_overlap
 	}
 }
