@@ -58,12 +58,14 @@ impl Stage {
 		let changed_rng = len_before..ret.len();
 		let changed = &ret[changed_rng];
 
-		let stage_change_i = changed
+		let mut stage_change_i = changed
 			.iter()
 			.enumerate()
 			.filter(|(_, ret)| ret.can_take::<StageChange>())
 			.map(|(a, _)| a)
 			.collect::<Vec<_>>();
+		stage_change_i.sort_by(|a, b| b.cmp(a));
+
 		let mut stage_changes = Vec::with_capacity(stage_change_i.len());
 		for i in stage_change_i {
 			stage_changes.push(ret.swap_remove(i))
