@@ -20,6 +20,11 @@ pub use anyhow::{Error, Result};
 pub trait Assets {
 	fn asset(&self, key: &str) -> impl Future<Output = Result<Asset>> + Send + Sync;
 }
+impl<A: Assets> Assets for &A {
+	fn asset(&self, key: &str) -> impl Future<Output = Result<Asset>> + Send + Sync {
+		A::asset(self, key)
+	}
+}
 
 #[derive(Clone, Debug)]
 pub struct Asset {
